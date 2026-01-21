@@ -36,13 +36,13 @@ func main() {
 
 	// Create Fiber app with optimized config
 	app := fiber.New(fiber.Config{
-		Prefork:       false, // Enable in production for multi-core
-		ServerHeader:  "EshopBuilder",
-		StrictRouting: true,
-		CaseSensitive: true,
-		BodyLimit:     50 * 1024 * 1024, // 50MB
+		Prefork:        false,
+		ServerHeader:   "EshopBuilder",
+		StrictRouting:  true,
+		CaseSensitive:  true,
+		BodyLimit:      50 * 1024 * 1024, // 50MB
 		ReadBufferSize: 8192,
-		Concurrency:   256 * 1024, // Max concurrent connections
+		Concurrency:    256 * 1024,
 	})
 
 	// Global middleware
@@ -55,7 +55,7 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
 	}))
 
@@ -67,24 +67,27 @@ func main() {
 
 	// Static files
 	app.Static("/static", "./static")
+	app.Static("/templates", "./templates")
 
 	// Health check
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "1.0.0"})
-	})
-
-	// Dashboard - serve index.html on root
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendFile("./static/index.html")
+		return c.JSON(fiber.Map{"status": "ok", "version": "2.0.0"})
 	})
 
 	// API routes
 	api := app.Group("/api/v1")
 
-	// Public routes
+	// ========================================
+	// PUBLIC ROUTES
+	// ========================================
+
+	// Auth
 	api.Post("/auth/register", handlers.Register)
 	api.Post("/auth/login", handlers.Login)
 	api.Post("/auth/refresh", handlers.RefreshToken)
+
+	// Templates (public)
+	api.Get("/templates", handlers.GetTemplates)
 
 	// Public shop routes (for storefront)
 	api.Get("/shop/:slug", handlers.GetPublicShop)
@@ -101,20 +104,27 @@ func main() {
 	webhooks.Post("/stripe", handlers.StripeWebhook)
 	webhooks.Post("/comgate", handlers.ComGateWebhook)
 
-	// Protected routes
+	// ========================================
+	// PROTECTED ROUTES (USER)
+	// ========================================
+
 	protected := api.Group("/", middleware.JWTAuth())
 
-	// User
+	// User profile
 	protected.Get("/me", handlers.GetCurrentUser)
 	protected.Put("/me", handlers.UpdateCurrentUser)
 
-	// Shops
+	// Shops management
 	protected.Get("/shops", handlers.GetShops)
 	protected.Post("/shops", handlers.CreateShop)
 	protected.Get("/shops/:id", handlers.GetShop)
 	protected.Put("/shops/:id", handlers.UpdateShop)
 	protected.Delete("/shops/:id", handlers.DeleteShop)
 	protected.Get("/shops/:id/stats", handlers.GetShopStats)
+
+	// Domain verification
+	protected.Post("/shops/:shopId/domain/verify", handlers.InitiateDomainVerification)
+	protected.Get("/shops/:shopId/domain/check", handlers.CheckDomainVerification)
 
 	// Products
 	protected.Get("/shops/:shopId/products", handlers.GetProducts)
@@ -181,6 +191,53 @@ func main() {
 	protected.Post("/payments/comgate", handlers.CreateComGatePayment)
 	protected.Get("/payments/:id/status", handlers.GetPaymentStatus)
 
+	// AI endpoints
+	protected.Post("/ai/generate", handlers.AIGenerate)
+	protected.Post("/ai/product-description", handlers.AIProductDescription)
+	protected.Post("/ai/seo", handlers.AISEOGenerate)
+	protected.Post("/ai/shop-builder", handlers.AIShopBuilder)
+
+	// ========================================
+	// SUPER ADMIN ROUTES
+	// ========================================
+
+	admin := api.Group("/admin", middleware.JWTAuth(), handlers.RequireSuperAdmin())
+
+	// Platform stats
+	admin.Get("/stats", handlers.GetPlatformStats)
+
+	// User management
+	admin.Get("/users", handlers.GetAllUsers)
+	admin.Get("/users/:id", handlers.GetUserDetail)
+	admin.Put("/users/:id", handlers.UpdateUser)
+	admin.Delete("/users/:id", handlers.DeleteUser)
+	admin.Post("/users/reset-password", handlers.ResetUserPassword)
+
+	// Shop management (admin view of all shops)
+	admin.Get("/shops", handlers.GetAllShops)
+	admin.Put("/shops/:id", handlers.AdminUpdateShop)
+	admin.Delete("/shops/:id", handlers.AdminDeleteShop)
+
+	// Template management
+	admin.Post("/templates", handlers.CreateTemplate)
+	admin.Put("/templates/:id", handlers.UpdateTemplate)
+	admin.Delete("/templates/:id", handlers.DeleteTemplate)
+
+	// ========================================
+	// STOREFRONT (for actual shops)
+	// ========================================
+
+	// These routes serve the actual customer-facing e-shop
+	// Domain routing handled by middleware
+	storefront := app.Group("/s/:shopSlug")
+	storefront.Get("/", handlers.StorefrontHome)
+	storefront.Get("/products", handlers.StorefrontProducts)
+	storefront.Get("/product/:slug", handlers.StorefrontProduct)
+	storefront.Get("/category/:slug", handlers.StorefrontCategory)
+	storefront.Get("/cart", handlers.StorefrontCart)
+	storefront.Post("/cart/add", handlers.StorefrontAddToCart)
+	storefront.Post("/checkout", handlers.StorefrontCheckout)
+
 	// Graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -194,7 +251,9 @@ func main() {
 		}
 	}()
 
-	log.Printf("🚀 EshopBuilder API running on port %s", port)
+	log.Printf("🚀 EshopBuilder API v2.0 running on port %s", port)
+	log.Println("📊 Super Admin panel: /api/v1/admin")
+	log.Println("🛒 Storefront: /s/{shop-slug}")
 
 	// Wait for interrupt signal
 	c := make(chan os.Signal, 1)

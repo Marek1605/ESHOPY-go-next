@@ -13,6 +13,31 @@ import (
 	"github.com/google/uuid"
 )
 
+// verifyShopOwnership checks if current user owns the shop
+func verifyShopOwnership(c *fiber.Ctx, shopID uuid.UUID) (*models.Shop, error) {
+	userID := middleware.GetUserID(c)
+
+	var shop models.Shop
+	err := database.Pool.QueryRow(context.Background(),
+		`SELECT id, user_id, name, slug, description, logo, currency, language, 
+		        primary_color, email, phone, address, facebook, instagram,
+		        meta_title, meta_description, is_active, is_published, custom_domain,
+		        domain_verified, created_at, updated_at
+		 FROM shops WHERE id = $1 AND user_id = $2`,
+		shopID, userID,
+	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo,
+		&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.Email, &shop.Phone,
+		&shop.Address, &shop.Facebook, &shop.Instagram, &shop.MetaTitle, &shop.MetaDescription,
+		&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.DomainVerified,
+		&shop.CreatedAt, &shop.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &shop, nil
+}
+
 // GetShops returns all shops for the current user
 func GetShops(c *fiber.Ctx) error {
 	userID := middleware.GetUserID(c)
@@ -24,7 +49,7 @@ func GetShops(c *fiber.Ctx) error {
 		`SELECT id, user_id, name, slug, description, logo, currency, language, 
 		        primary_color, email, phone, address, facebook, instagram,
 		        meta_title, meta_description, is_active, is_published, custom_domain,
-		        created_at, updated_at
+		        domain_verified, created_at, updated_at
 		 FROM shops WHERE user_id = $1 ORDER BY created_at DESC`,
 		userID,
 	)
@@ -39,7 +64,8 @@ func GetShops(c *fiber.Ctx) error {
 		err := rows.Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo,
 			&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.Email, &shop.Phone,
 			&shop.Address, &shop.Facebook, &shop.Instagram, &shop.MetaTitle, &shop.MetaDescription,
-			&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.CreatedAt, &shop.UpdatedAt)
+			&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.DomainVerified,
+			&shop.CreatedAt, &shop.UpdatedAt)
 		if err != nil {
 			continue
 		}
@@ -72,8 +98,9 @@ func CreateShop(c *fiber.Ctx) error {
 	}
 
 	// Check slug uniqueness
+	ctx := context.Background()
 	var exists bool
-	database.Pool.QueryRow(context.Background(),
+	database.Pool.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM shops WHERE slug = $1)",
 		slug,
 	).Scan(&exists)
@@ -93,29 +120,53 @@ func CreateShop(c *fiber.Ctx) error {
 	}
 
 	var shop models.Shop
-	err := database.Pool.QueryRow(context.Background(),
-		`INSERT INTO shops (user_id, name, slug, description, currency, language, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+	err := database.Pool.QueryRow(ctx,
+		`INSERT INTO shops (user_id, template_id, name, slug, description, currency, language, 
+		                    primary_color, secondary_color, accent_color, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, '#3B82F6', '#1E40AF', '#F59E0B', NOW(), NOW())
 		 RETURNING id, user_id, name, slug, description, logo, currency, language, 
 		           primary_color, email, phone, address, facebook, instagram,
 		           meta_title, meta_description, is_active, is_published, custom_domain,
-		           created_at, updated_at`,
-		userID, req.Name, slug, req.Description, currency, language,
+		           domain_verified, created_at, updated_at`,
+		userID, req.TemplateID, req.Name, slug, req.Description, currency, language,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo,
 		&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.Email, &shop.Phone,
 		&shop.Address, &shop.Facebook, &shop.Instagram, &shop.MetaTitle, &shop.MetaDescription,
-		&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.CreatedAt, &shop.UpdatedAt)
+		&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.DomainVerified,
+		&shop.CreatedAt, &shop.UpdatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create shop"})
 	}
 
 	// Create default settings
-	database.Pool.Exec(context.Background(),
+	database.Pool.Exec(ctx,
 		`INSERT INTO shop_settings (shop_id, invoice_prefix, invoice_next_number, tax_rate, prices_include_tax, low_stock_threshold)
 		 VALUES ($1, 'FA', 1, 20, true, 5)`,
 		shop.ID,
 	)
+
+	// Create default shipping method
+	database.Pool.Exec(ctx,
+		`INSERT INTO shipping_methods (shop_id, name, description, price, is_active, position)
+		 VALUES ($1, 'Doručenie kuriérom', 'Doručenie do 2-3 pracovných dní', 4.99, true, 0)`,
+		shop.ID,
+	)
+
+	// Create default payment method
+	database.Pool.Exec(ctx,
+		`INSERT INTO payment_methods (shop_id, type, name, description, is_active, position)
+		 VALUES ($1, 'cod', 'Dobierka', 'Platba pri prevzatí', true, 0)`,
+		shop.ID,
+	)
+
+	// Increment template usage
+	if req.TemplateID != nil {
+		database.Pool.Exec(ctx,
+			"UPDATE shop_templates SET usage_count = usage_count + 1 WHERE id = $1",
+			req.TemplateID,
+		)
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(shop)
 }
@@ -152,14 +203,17 @@ func UpdateShop(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	// Build dynamic update query
 	allowedFields := map[string]bool{
-		"name": true, "slug": true, "description": true, "logo": true,
-		"currency": true, "language": true, "primary_color": true,
-		"email": true, "phone": true, "address": true,
-		"facebook": true, "instagram": true,
-		"meta_title": true, "meta_description": true,
-		"is_active": true, "is_published": true, "custom_domain": true,
+		"name": true, "slug": true, "description": true, "logo": true, "favicon": true,
+		"currency": true, "language": true, "timezone": true,
+		"primary_color": true, "secondary_color": true, "accent_color": true,
+		"font_heading": true, "font_body": true, "custom_css": true, "layout_config": true,
+		"email": true, "phone": true, "address": true, "city": true, "zip": true, "country": true,
+		"facebook": true, "instagram": true, "twitter": true, "youtube": true, "tiktok": true,
+		"meta_title": true, "meta_description": true, "meta_keywords": true,
+		"google_analytics": true, "facebook_pixel": true,
+		"is_active": true, "is_published": true, "setup_completed": true, "setup_step": true,
+		"custom_domain": true,
 	}
 
 	setClauses := []string{}
@@ -188,7 +242,6 @@ func UpdateShop(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update shop"})
 	}
 
-	// Return updated shop
 	shop, _ := verifyShopOwnership(c, shopID)
 	return c.JSON(shop)
 }
@@ -272,16 +325,17 @@ func GetPublicShop(c *fiber.Ctx) error {
 
 	var shop models.Shop
 	err := database.Pool.QueryRow(context.Background(),
-		`SELECT id, user_id, name, slug, description, logo, currency, language, 
-		        primary_color, email, phone, address, facebook, instagram,
-		        meta_title, meta_description, is_active, is_published, custom_domain,
-		        created_at, updated_at
+		`SELECT id, name, slug, description, logo, favicon, currency, language, 
+		        primary_color, secondary_color, accent_color, font_heading, font_body,
+		        email, phone, address, facebook, instagram, twitter,
+		        meta_title, meta_description, custom_domain
 		 FROM shops WHERE slug = $1 AND is_published = true AND is_active = true`,
 		slug,
-	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo,
-		&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.Email, &shop.Phone,
-		&shop.Address, &shop.Facebook, &shop.Instagram, &shop.MetaTitle, &shop.MetaDescription,
-		&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.CreatedAt, &shop.UpdatedAt)
+	).Scan(&shop.ID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo, &shop.Favicon,
+		&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.SecondaryColor, &shop.AccentColor,
+		&shop.FontHeading, &shop.FontBody, &shop.Email, &shop.Phone, &shop.Address,
+		&shop.Facebook, &shop.Instagram, &shop.Twitter, &shop.MetaTitle, &shop.MetaDescription,
+		&shop.CustomDomain)
 
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Shop not found"})
@@ -295,10 +349,8 @@ func GetPublicShop(c *fiber.Ctx) error {
 
 // Helper to generate slug from name
 func generateSlug(name string) string {
-	// Convert to lowercase
 	slug := strings.ToLower(name)
 	
-	// Replace diacritics
 	replacer := strings.NewReplacer(
 		"á", "a", "ä", "a", "č", "c", "ď", "d", "é", "e", "ě", "e",
 		"í", "i", "ľ", "l", "ĺ", "l", "ň", "n", "ó", "o", "ô", "o",
@@ -307,12 +359,54 @@ func generateSlug(name string) string {
 	)
 	slug = replacer.Replace(slug)
 	
-	// Replace non-alphanumeric with dash
 	reg := regexp.MustCompile("[^a-z0-9]+")
 	slug = reg.ReplaceAllString(slug, "-")
 	
-	// Trim dashes
 	slug = strings.Trim(slug, "-")
 	
 	return slug
+}
+
+// GetPublicCategories returns categories for public shop
+func GetPublicCategories(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	ctx := context.Background()
+
+	var shopID uuid.UUID
+	err := database.Pool.QueryRow(ctx,
+		"SELECT id FROM shops WHERE slug = $1 AND is_published = true AND is_active = true",
+		slug,
+	).Scan(&shopID)
+
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Shop not found"})
+	}
+
+	rows, _ := database.Pool.Query(ctx,
+		`SELECT c.id, c.name, c.slug, c.description, c.image,
+		        (SELECT COUNT(*) FROM products WHERE category_id = c.id AND is_active = true) as product_count
+		 FROM categories c
+		 WHERE c.shop_id = $1 AND c.is_active = true
+		 ORDER BY c.position, c.name`,
+		shopID)
+	defer rows.Close()
+
+	categories := []map[string]interface{}{}
+	for rows.Next() {
+		var id uuid.UUID
+		var name, slug string
+		var desc, image *string
+		var productCount int
+		rows.Scan(&id, &name, &slug, &desc, &image, &productCount)
+		categories = append(categories, map[string]interface{}{
+			"id":            id,
+			"name":          name,
+			"slug":          slug,
+			"description":   desc,
+			"image":         image,
+			"product_count": productCount,
+		})
+	}
+
+	return c.JSON(fiber.Map{"categories": categories})
 }

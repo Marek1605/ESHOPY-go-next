@@ -1,300 +1,477 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
-  ShoppingCart, Package, Users, TrendingUp, ArrowUpRight, 
-  ArrowDownRight, Plus, Eye, MoreHorizontal, Sparkles
-} from 'lucide-react'
-import { useAuthStore, useShopStore } from '@/lib/store'
-import { shops as shopsApi, orders, products } from '@/lib/api'
+  Plus, Store, Package, ShoppingCart, Users, Settings, 
+  BarChart3, Globe, ExternalLink, MoreVertical, Trash2,
+  Eye, Edit, Copy, CheckCircle, XCircle, AlertCircle,
+  TrendingUp, DollarSign, Sparkles
+} from 'lucide-react';
 
-export default function DashboardPage() {
-  const { token } = useAuthStore()
-  const { currentShop } = useShopStore()
-  const [stats, setStats] = useState<any>(null)
-  const [recentOrders, setRecentOrders] = useState<any[]>([])
-  const [topProducts, setTopProducts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+interface Shop {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  logo: string | null;
+  is_active: boolean;
+  is_published: boolean;
+  custom_domain: string | null;
+  domain_verified: boolean;
+  created_at: string;
+}
+
+interface ShopStats {
+  total_products: number;
+  total_orders: number;
+  total_customers: number;
+  total_revenue: number;
+  pending_orders: number;
+  monthly_revenue: number;
+  monthly_orders: number;
+}
+
+export default function CustomerDashboard() {
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  const [stats, setStats] = useState<ShopStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token && currentShop) {
-      loadData()
-    }
-  }, [token, currentShop])
+    fetchShops();
+  }, []);
 
-  const loadData = async () => {
-    if (!token || !currentShop) return
-    
-    setLoading(true)
-    try {
-      const [statsData, ordersData, productsData] = await Promise.all([
-        shopsApi.stats(token, currentShop.id),
-        orders.list(token, currentShop.id),
-        products.list(token, currentShop.id, { limit: 5 }),
-      ])
-      
-      setStats(statsData)
-      setRecentOrders(ordersData.orders?.slice(0, 5) || [])
-      setTopProducts(productsData.data || [])
-    } catch (error) {
-      console.error('Failed to load data:', error)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (selectedShop) {
+      fetchStats(selectedShop.id);
     }
+  }, [selectedShop]);
+
+  const fetchShops = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/v1/shops', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setShops(data.shops || []);
+      if (data.shops?.length > 0) {
+        setSelectedShop(data.shops[0]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch shops:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchStats = async (shopId: string) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/v1/shops/${shopId}/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const handleDeleteShop = async (shopId: string) => {
+    if (!confirm('Naozaj chcete zmazať tento e-shop? Táto akcia je nevratná.')) return;
+    
+    const token = localStorage.getItem('token');
+    await fetch(`/api/v1/shops/${shopId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    fetchShops();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      </div>
+    );
   }
 
-  const statCards = [
-    {
-      label: 'Tržby tento mesiac',
-      value: `€${stats?.total_revenue?.toFixed(2) || '0.00'}`,
-      change: '+12.5%',
-      positive: true,
-      icon: TrendingUp,
-    },
-    {
-      label: 'Objednávky',
-      value: stats?.total_orders || 0,
-      change: '+8.2%',
-      positive: true,
-      icon: ShoppingCart,
-    },
-    {
-      label: 'Produkty',
-      value: stats?.total_products || 0,
-      change: '0',
-      positive: true,
-      icon: Package,
-    },
-    {
-      label: 'Zákazníci',
-      value: stats?.total_customers || 0,
-      change: '+3.1%',
-      positive: true,
-      icon: Users,
-    },
-  ]
-
-  if (!currentShop) {
+  // No shops - show create prompt
+  if (shops.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-20 h-20 rounded-2xl bg-brand-500/20 flex items-center justify-center mb-6">
-          <Package className="w-10 h-10 text-brand-400" />
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Store className="w-10 h-10 text-blue-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Vitajte v EshopBuilder!</h1>
+          <p className="text-gray-400 mb-8">
+            Vytvorte si svoj prvý e-shop za pár minút s pomocou AI
+          </p>
+          <Link
+            href="/dashboard/shop-builder"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors"
+          >
+            <Sparkles className="w-5 h-5" />
+            Vytvoriť e-shop
+          </Link>
         </div>
-        <h2 className="font-display font-bold text-2xl text-white mb-2">
-          Žiadny e-shop
-        </h2>
-        <p className="text-midnight-400 mb-6 max-w-md">
-          Vytvor si prvý e-shop a začni predávať online
-        </p>
-        <Link href="/dashboard/new-shop" className="btn-primary">
-          <Plus className="w-5 h-5" />
-          Vytvoriť e-shop
-        </Link>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display font-bold text-3xl text-white">
-            Prehľad
-          </h1>
-          <p className="text-midnight-400">
-            Vitaj späť! Tu je súhrn tvojho e-shopu.
-          </p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <Store className="w-8 h-8 text-blue-500" />
+            <span className="text-xl font-bold">EshopBuilder</span>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/ai" className="btn-secondary">
-            <Sparkles className="w-4 h-4" />
-            AI Asistent
-          </Link>
-          <Link href="/dashboard/products/new" className="btn-primary">
+
+        {/* Shop Selector */}
+        <div className="p-4 border-b border-gray-800">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Aktívny obchod</label>
+          <select
+            value={selectedShop?.id || ''}
+            onChange={(e) => {
+              const shop = shops.find(s => s.id === e.target.value);
+              if (shop) setSelectedShop(shop);
+            }}
+            className="w-full mt-2 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+          >
+            {shops.map((shop) => (
+              <option key={shop.id} value={shop.id}>{shop.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          <NavItem href="/dashboard" icon={BarChart3} label="Prehľad" active />
+          <NavItem href={`/dashboard/orders?shop=${selectedShop?.id}`} icon={ShoppingCart} label="Objednávky" badge={stats?.pending_orders} />
+          <NavItem href={`/dashboard/products?shop=${selectedShop?.id}`} icon={Package} label="Produkty" />
+          <NavItem href={`/dashboard/customers?shop=${selectedShop?.id}`} icon={Users} label="Zákazníci" />
+          <NavItem href={`/dashboard/settings?shop=${selectedShop?.id}`} icon={Settings} label="Nastavenia" />
+          
+          <div className="pt-4 mt-4 border-t border-gray-800">
+            <NavItem href={`/dashboard/design?shop=${selectedShop?.id}`} icon={Sparkles} label="Dizajn & AI" />
+            <NavItem href={`/dashboard/domain?shop=${selectedShop?.id}`} icon={Globe} label="Doména" />
+          </div>
+        </nav>
+
+        {/* Create New Shop */}
+        <div className="p-4 border-t border-gray-800">
+          <Link
+            href="/dashboard/shop-builder"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
             <Plus className="w-4 h-4" />
-            Pridať produkt
+            Nový e-shop
           </Link>
         </div>
-      </div>
+      </aside>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, i) => (
-          <div key={i} className="stat-card animate-fade-up" style={{ animationDelay: `${i * 100}ms` }}>
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-12 h-12 rounded-xl bg-brand-500/20 flex items-center justify-center`}>
-                <stat.icon className="w-6 h-6 text-brand-400" />
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-medium ${
-                stat.positive ? 'text-success-400' : 'text-danger-400'
-              }`}>
-                {stat.positive ? (
-                  <ArrowUpRight className="w-4 h-4" />
-                ) : (
-                  <ArrowDownRight className="w-4 h-4" />
-                )}
-                {stat.change}
-              </div>
+      {/* Main Content */}
+      <main className="ml-64 p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold">{selectedShop?.name}</h1>
+            <div className="flex items-center gap-4 mt-1">
+              <a 
+                href={`/s/${selectedShop?.slug}`} 
+                target="_blank"
+                className="text-gray-400 hover:text-white flex items-center gap-1 text-sm"
+              >
+                {selectedShop?.slug}.eshopbuilder.sk
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              {selectedShop?.is_published ? (
+                <span className="flex items-center gap-1 text-green-500 text-sm">
+                  <CheckCircle className="w-4 h-4" /> Publikovaný
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-yellow-500 text-sm">
+                  <AlertCircle className="w-4 h-4" /> Koncept
+                </span>
+              )}
             </div>
-            <div className="font-display font-bold text-3xl text-white mb-1">
-              {loading ? '-' : stat.value}
-            </div>
-            <div className="text-sm text-midnight-400">{stat.label}</div>
           </div>
-        ))}
-      </div>
-
-      {/* Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
-        <div className="lg:col-span-2 card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-bold text-xl text-white">
-              Posledné objednávky
-            </h2>
-            <Link href="/dashboard/orders" className="text-sm text-brand-400 hover:text-brand-300">
-              Zobraziť všetky
+          
+          <div className="flex items-center gap-3">
+            <a
+              href={`/s/${selectedShop?.slug}`}
+              target="_blank"
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Zobraziť obchod
+            </a>
+            <Link
+              href={`/dashboard/settings?shop=${selectedShop?.id}`}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Nastavenia
             </Link>
           </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-midnight-800/50 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : recentOrders.length === 0 ? (
-            <div className="text-center py-12 text-midnight-400">
-              <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Zatiaľ žiadne objednávky</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-midnight-800">
-                    <th className="table-header text-left pb-4">Objednávka</th>
-                    <th className="table-header text-left pb-4">Zákazník</th>
-                    <th className="table-header text-left pb-4">Suma</th>
-                    <th className="table-header text-left pb-4">Status</th>
-                    <th className="table-header text-right pb-4"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="table-row">
-                      <td className="table-cell font-medium text-white">
-                        #{order.order_number}
-                      </td>
-                      <td className="table-cell text-midnight-300">
-                        {order.billing_email || '-'}
-                      </td>
-                      <td className="table-cell text-white">
-                        €{order.total?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="table-cell">
-                        <span className={`badge ${
-                          order.status === 'delivered' ? 'badge-success' :
-                          order.status === 'pending' ? 'badge-warning' :
-                          order.status === 'cancelled' ? 'badge-danger' :
-                          'badge-brand'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="table-cell text-right">
-                        <Link 
-                          href={`/dashboard/orders/${order.id}`}
-                          className="p-2 text-midnight-400 hover:text-white transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
 
-        {/* Top Products */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-bold text-xl text-white">
-              Top produkty
-            </h2>
-            <Link href="/dashboard/products" className="text-sm text-brand-400 hover:text-brand-300">
-              Všetky
-            </Link>
+        {/* Stats Grid */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatCard
+              title="Tržby tento mesiac"
+              value={formatCurrency(stats.monthly_revenue)}
+              icon={DollarSign}
+              color="green"
+            />
+            <StatCard
+              title="Objednávky"
+              value={stats.total_orders.toString()}
+              subtitle={`${stats.pending_orders} čakajúcich`}
+              icon={ShoppingCart}
+              color="blue"
+            />
+            <StatCard
+              title="Produkty"
+              value={stats.total_products.toString()}
+              icon={Package}
+              color="purple"
+            />
+            <StatCard
+              title="Zákazníci"
+              value={stats.total_customers.toString()}
+              icon={Users}
+              color="orange"
+            />
           </div>
+        )}
 
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-midnight-800/50 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : topProducts.length === 0 ? (
-            <div className="text-center py-12 text-midnight-400">
-              <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Žiadne produkty</p>
-              <Link href="/dashboard/products/new" className="text-brand-400 hover:text-brand-300 text-sm mt-2 block">
-                Pridať prvý produkt
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {topProducts.map((product, i) => (
-                <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
-                  <div className="w-12 h-12 rounded-lg bg-midnight-800 flex items-center justify-center text-midnight-400 font-bold">
-                    {i + 1}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <QuickActionCard
+            title="Pridať produkt"
+            description="Vytvorte nový produkt pomocou AI"
+            icon={Package}
+            href={`/dashboard/products/new?shop=${selectedShop?.id}`}
+            color="blue"
+          />
+          <QuickActionCard
+            title="Upraviť dizajn"
+            description="Prispôsobte farby a layout"
+            icon={Sparkles}
+            href={`/dashboard/design?shop=${selectedShop?.id}`}
+            color="purple"
+          />
+          <QuickActionCard
+            title="Nastaviť doménu"
+            description="Pripojte vlastnú doménu"
+            icon={Globe}
+            href={`/dashboard/domain?shop=${selectedShop?.id}`}
+            color="green"
+          />
+        </div>
+
+        {/* All Shops */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800">
+          <div className="p-6 border-b border-gray-800">
+            <h2 className="text-lg font-semibold">Vaše e-shopy</h2>
+          </div>
+          <div className="divide-y divide-gray-800">
+            {shops.map((shop) => (
+              <div 
+                key={shop.id} 
+                className={`p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors ${
+                  selectedShop?.id === shop.id ? 'bg-blue-500/10' : ''
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
+                    {shop.logo ? (
+                      <img src={shop.logo} alt={shop.name} className="w-8 h-8 object-contain" />
+                    ) : (
+                      <Store className="w-6 h-6 text-gray-400" />
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white truncate">
-                      {product.name}
-                    </div>
-                    <div className="text-sm text-midnight-400">
-                      €{product.price?.toFixed(2) || '0.00'}
-                    </div>
-                  </div>
-                  <div className="text-sm text-midnight-400">
-                    {product.quantity} ks
+                  <div>
+                    <div className="font-medium">{shop.name}</div>
+                    <div className="text-sm text-gray-400">{shop.slug}.eshopbuilder.sk</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <h2 className="font-display font-bold text-xl text-white mb-6">
-          Rýchle akcie
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { href: '/dashboard/products/new', icon: Package, label: 'Pridať produkt', color: 'brand' },
-            { href: '/dashboard/ai', icon: Sparkles, label: 'AI generátor', color: 'success' },
-            { href: '/dashboard/orders', icon: ShoppingCart, label: 'Objednávky', color: 'warning' },
-            { href: '/dashboard/settings', icon: Plus, label: 'Nastavenia', color: 'brand' },
-          ].map((action, i) => (
-            <Link
-              key={i}
-              href={action.href}
-              className="flex items-center gap-4 p-4 rounded-xl bg-midnight-800/50 hover:bg-midnight-800 transition-colors group"
-            >
-              <div className={`w-10 h-10 rounded-lg bg-${action.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <action.icon className={`w-5 h-5 text-${action.color}-400`} />
+                
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    {shop.is_published ? (
+                      <span className="text-green-500 text-sm">Publikovaný</span>
+                    ) : (
+                      <span className="text-yellow-500 text-sm">Koncept</span>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMenu(showMenu === shop.id ? null : shop.id)}
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    
+                    {showMenu === shop.id && (
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={() => {
+                            setSelectedShop(shop);
+                            setShowMenu(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" /> Spravovať
+                        </button>
+                        <a
+                          href={`/s/${shop.slug}`}
+                          target="_blank"
+                          className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" /> Otvoriť
+                        </a>
+                        <Link
+                          href={`/dashboard/settings?shop=${shop.id}`}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Settings className="w-4 h-4" /> Nastavenia
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleDeleteShop(shop.id);
+                            setShowMenu(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2 text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" /> Zmazať
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <span className="font-medium text-white">{action.label}</span>
-            </Link>
-          ))}
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function NavItem({ 
+  href, 
+  icon: Icon, 
+  label, 
+  active, 
+  badge 
+}: { 
+  href: string; 
+  icon: any; 
+  label: string; 
+  active?: boolean;
+  badge?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+        active 
+          ? 'bg-blue-600 text-white' 
+          : 'text-gray-400 hover:text-white hover:bg-gray-800'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon className="w-5 h-5" />
+        <span>{label}</span>
+      </div>
+      {badge !== undefined && badge > 0 && (
+        <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+          {badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function StatCard({ 
+  title, 
+  value, 
+  subtitle, 
+  icon: Icon, 
+  color 
+}: { 
+  title: string; 
+  value: string; 
+  subtitle?: string;
+  icon: any; 
+  color: string;
+}) {
+  const colorClasses = {
+    green: 'bg-green-600/20 text-green-500',
+    blue: 'bg-blue-600/20 text-blue-500',
+    purple: 'bg-purple-600/20 text-purple-500',
+    orange: 'bg-orange-600/20 text-orange-500',
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-gray-400 text-sm">{title}</span>
+        <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
+          <Icon className="w-5 h-5" />
         </div>
       </div>
+      <div className="text-2xl font-bold">{value}</div>
+      {subtitle && <div className="text-gray-400 text-sm mt-1">{subtitle}</div>}
     </div>
-  )
+  );
+}
+
+function QuickActionCard({
+  title,
+  description,
+  icon: Icon,
+  href,
+  color,
+}: {
+  title: string;
+  description: string;
+  icon: any;
+  href: string;
+  color: string;
+}) {
+  const colorClasses = {
+    blue: 'from-blue-600/20 to-blue-600/5 border-blue-500/30 hover:border-blue-500',
+    purple: 'from-purple-600/20 to-purple-600/5 border-purple-500/30 hover:border-purple-500',
+    green: 'from-green-600/20 to-green-600/5 border-green-500/30 hover:border-green-500',
+  };
+
+  return (
+    <Link
+      href={href}
+      className={`block p-6 rounded-xl bg-gradient-to-br border transition-all hover:scale-105 ${
+        colorClasses[color as keyof typeof colorClasses]
+      }`}
+    >
+      <Icon className="w-8 h-8 mb-3" />
+      <h3 className="font-semibold mb-1">{title}</h3>
+      <p className="text-sm text-gray-400">{description}</p>
+    </Link>
+  );
 }

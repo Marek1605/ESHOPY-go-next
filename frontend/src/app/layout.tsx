@@ -1,22 +1,22 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+
+const inter = Inter({ subsets: ['latin', 'latin-ext'] });
 
 export const metadata: Metadata = {
-  title: 'EshopBuilder | Vytvor si profesionálny e-shop za minúty',
-  description: 'Najmodernejšia platforma na tvorbu e-shopov pre slovenský a český trh. AI-powered, rýchle, krásne.',
-  keywords: ['e-shop', 'tvorba e-shopu', 'online obchod', 'slovenský e-shop', 'shopify alternatíva'],
-}
+  title: 'EshopBuilder | Vytvorte si profesionálny e-shop',
+  description: 'Vytvorte si profesionálny e-shop za pár minút s pomocou AI. Slovenská platforma pre online predaj.',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="sk" className="dark">
-      <body className="noise">
-        {children}
-      </body>
+    <html lang="sk">
+      <body className={inter.className}>{children}</body>
     </html>
-  )
+  );
 }

@@ -1,212 +1,248 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ShoppingBag, Mail, Lock, User, ArrowRight, Loader2, Check } from 'lucide-react'
-import { auth } from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Store, Mail, Lock, User, Eye, EyeOff, Loader2, Check } from 'lucide-react';
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const setAuth = useAuthStore((state) => state.setAuth)
-  
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [agreed, setAgreed] = useState(false);
+
+  const passwordStrength = () => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+    return strength;
+  };
+
+  const strengthLabels = ['Veľmi slabé', 'Slabé', 'Dobré', 'Silné', 'Veľmi silné'];
+  const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-emerald-500'];
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      setError('Heslá sa nezhodujú');
+      return;
+    }
+
+    if (!agreed) {
+      setError('Musíte súhlasiť s obchodnými podmienkami');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
 
     try {
-      const data = await auth.register({ name, email, password })
-      setAuth(data.token, data.user)
-      router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Registrácia zlyhala')
-    } finally {
-      setLoading(false)
-    }
-  }
+      const res = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-  const features = [
-    'Neobmedzený počet produktov',
-    'Vlastná doména',
-    'AI asistent na generovanie popisov',
-    'Všetky platobné brány',
-    '14 dní zadarmo',
-  ]
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Registrácia zlyhala');
+      }
+
+      // Save tokens
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Redirect to shop builder
+      router.push('/dashboard/shop-builder');
+    } catch (err: any) {
+      setError(err.message);
+    }
+
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Visual */}
-      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 gradient-mesh" />
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-brand-500/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-brand-600/20 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 max-w-lg px-12">
-          <div className="mb-8 flex">
-            <div className="w-20 h-20 rounded-2xl gradient-brand flex items-center justify-center shadow-glow-lg">
-              <ShoppingBag className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          
-          <h2 className="font-display font-bold text-4xl text-white mb-4">
-            Začni predávať online ešte dnes
-          </h2>
-          <p className="text-xl text-midnight-300 mb-8">
-            Vytvor si profesionálny e-shop za pár minút bez technických znalostí.
+    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <Link href="/" className="flex items-center justify-center gap-3 mb-8">
+          <Store className="w-10 h-10 text-blue-500" />
+          <span className="text-2xl font-bold">EshopBuilder</span>
+        </Link>
+
+        {/* Card */}
+        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+          <h1 className="text-2xl font-bold text-center mb-2">Vytvorte si účet</h1>
+          <p className="text-gray-400 text-center mb-8">
+            Začnite vytvárať svoj e-shop zadarmo
           </p>
 
-          <div className="space-y-4">
-            {features.map((feature, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                  <Check className="w-4 h-4 text-brand-400" />
-                </div>
-                <span className="text-midnight-200">{feature}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 mb-12">
-            <div className="w-12 h-12 rounded-xl gradient-brand flex items-center justify-center shadow-glow">
-              <ShoppingBag className="w-6 h-6 text-white" />
-            </div>
-            <span className="font-display font-bold text-2xl text-white">
-              Eshop<span className="text-brand-400">Builder</span>
-            </span>
-          </Link>
-
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="font-display font-bold text-3xl text-white mb-2">
-              Vytvor si účet
-            </h1>
-            <p className="text-midnight-400">
-              Začni zadarmo a otestuj všetky funkcie
-            </p>
-          </div>
-
-          {/* Error message */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-danger-500/20 border border-danger-500/30 text-danger-400 text-sm">
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-midnight-300 mb-2">
-                Meno
-              </label>
-              <div className="input-group">
-                <User className="input-icon w-5 h-5" />
+              <label className="block text-sm font-medium mb-2">Meno</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Tvoje meno"
-                  className="input input-with-icon"
+                  placeholder="Vaše meno"
                   required
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-midnight-300 mb-2">
-                Email
-              </label>
-              <div className="input-group">
-                <Mail className="input-icon w-5 h-5" />
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="meno@email.sk"
-                  className="input input-with-icon"
+                  placeholder="vas@email.sk"
                   required
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-midnight-300 mb-2">
-                Heslo
-              </label>
-              <div className="input-group">
-                <Lock className="input-icon w-5 h-5" />
+              <label className="block text-sm font-medium mb-2">Heslo</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min. 8 znakov"
-                  className="input input-with-icon"
-                  minLength={8}
                   required
+                  minLength={6}
+                  className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {password && (
+                <div className="mt-2">
+                  <div className="flex gap-1 mb-1">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full ${
+                          i < passwordStrength() ? strengthColors[passwordStrength()] : 'bg-gray-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-400">{strengthLabels[passwordStrength()]}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Potvrdiť heslo</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Zopakujte heslo"
+                  required
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                {confirmPassword && password === confirmPassword && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                )}
               </div>
             </div>
 
-            <div className="flex items-start gap-2">
-              <input 
-                type="checkbox" 
-                id="terms"
-                className="w-4 h-4 mt-1 rounded bg-midnight-800 border-midnight-600 text-brand-500 focus:ring-brand-500" 
-                required
-              />
-              <label htmlFor="terms" className="text-sm text-midnight-400">
-                Súhlasím s{' '}
-                <Link href="/terms" className="text-brand-400 hover:text-brand-300">
-                  obchodnými podmienkami
-                </Link>{' '}
-                a{' '}
-                <Link href="/privacy" className="text-brand-400 hover:text-brand-300">
-                  ochranou súkromia
-                </Link>
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-1 rounded border-gray-600"
+                />
+                <span className="text-sm text-gray-400">
+                  Súhlasím s{' '}
+                  <Link href="/terms" className="text-blue-400 hover:text-blue-300">
+                    obchodnými podmienkami
+                  </Link>{' '}
+                  a{' '}
+                  <Link href="/privacy" className="text-blue-400 hover:text-blue-300">
+                    ochranou osobných údajov
+                  </Link>
+                </span>
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-4"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
                 <>
-                  Vytvoriť účet
-                  <ArrowRight className="w-5 h-5" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Vytváram účet...
                 </>
+              ) : (
+                'Vytvoriť účet'
               )}
             </button>
           </form>
 
-          {/* Footer */}
-          <p className="mt-8 text-center text-midnight-400">
-            Máš už účet?{' '}
-            <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium">
-              Prihlásiť sa
-            </Link>
-          </p>
+          <div className="mt-8 pt-6 border-t border-gray-800 text-center">
+            <p className="text-gray-400">
+              Už máte účet?{' '}
+              <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                Prihláste sa
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Benefits */}
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+          <div className="p-4">
+            <div className="text-2xl mb-1">🚀</div>
+            <div className="text-sm text-gray-400">Spustenie za minúty</div>
+          </div>
+          <div className="p-4">
+            <div className="text-2xl mb-1">💳</div>
+            <div className="text-sm text-gray-400">Bez kreditky</div>
+          </div>
+          <div className="p-4">
+            <div className="text-2xl mb-1">🎁</div>
+            <div className="text-sm text-gray-400">14 dní zadarmo</div>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

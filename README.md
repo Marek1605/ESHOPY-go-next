@@ -1,65 +1,160 @@
-# 🚀 EshopBuilder - Platforma na tvorbu e-shopov
+# EshopBuilder v2.0
 
-Profesionálna SaaS platforma pre slovenský a český trh.
+Kompletná platforma na tvorbu e-shopov s AI asistentom.
 
-## 📁 Štruktúra projektu
+## 🚀 Funkcie
+
+### Pre zákazníkov (majiteľov e-shopov)
+- **AI Shop Builder** - vytvorte e-shop s pomocou AI
+- **Šablóny** - predpripravené dizajnové šablóny
+- **Správa produktov** - CRUD operácie, varianty, obrázky
+- **Objednávky** - sledovanie, stavy, faktúry
+- **Zákazníci** - databáza zákazníkov
+- **Platobné brány** - GoPay, Stripe, ComGate, dobierka
+- **Doručenie** - konfigurácia dopravných metód
+- **Analytics** - štatistiky, grafy
+- **Vlastná doména** - DNS verifikácia, SSL
+
+### Pre admina (teba)
+- **Super Admin Panel** - /admin
+- **Prehľad všetkých shopov** - zoznam, štatistiky
+- **Správa používateľov** - edit, reset hesla, deaktivácia
+- **Správa šablón** - pridávanie/úprava šablón
+
+## 📁 Štruktúra
 
 ```
-ESHOPY-go-next/
-├── api/          # Go backend (Fiber v2)
-└── frontend/     # Next.js frontend
+eshopbuilder-complete/
+├── api/                    # Go backend
+│   ├── cmd/server/        # Main entry point
+│   ├── internal/
+│   │   ├── database/      # Database connection & migrations
+│   │   ├── handlers/      # HTTP handlers
+│   │   ├── middleware/    # JWT auth middleware
+│   │   └── models/        # Data models
+│   ├── Dockerfile
+│   └── go.mod
+├── frontend/              # Next.js frontend
+│   ├── src/app/
+│   │   ├── admin/        # Super admin panel
+│   │   ├── dashboard/    # User dashboard
+│   │   │   └── shop-builder/  # AI shop builder wizard
+│   │   ├── login/
+│   │   └── register/
+│   ├── Dockerfile
+│   └── package.json
+└── docker-compose.yml
 ```
 
-## 🔧 Technológie
+## 🛠️ Inštalácia
 
-### Backend (Go)
-- **Framework:** Fiber v2
-- **Databáza:** PostgreSQL
-- **Auth:** JWT
-- **Platby:** GoPay, Stripe, ComGate
+### S Docker
 
-### Frontend (Next.js)
-- **Framework:** Next.js 14
-- **Styling:** Tailwind CSS
-- **UI:** Radix UI, Lucide icons
-- **State:** Zustand
-- **AI:** Anthropic Claude / OpenAI
+```bash
+# Nastaviť environment
+cp api/.env.example api/.env
+# Upraviť .env (JWT_SECRET, ANTHROPIC_API_KEY)
 
-## 🚀 Deployment
+# Spustiť
+docker-compose up -d
+```
 
-### 1. Go API
+### Manuálne
+
+#### API (Go)
 ```bash
 cd api
-docker build -t eshop-api .
-docker run -p 8080:8080 eshop-api
+cp .env.example .env
+# Upraviť .env
+
+go mod download
+go run cmd/server/main.go
 ```
 
-### 2. Next.js Frontend
+#### Frontend (Next.js)
 ```bash
 cd frontend
 npm install
-npm run build
-npm start
+npm run dev
 ```
 
-## 📊 Funkcie
+## 🔑 Default admin login
 
-- ✅ Multi-tenant e-shop platforma
-- ✅ AI generovanie popisov produktov
-- ✅ Platobné brány (GoPay, Stripe, ComGate)
-- ✅ Správa produktov, objednávok, zákazníkov
-- ✅ Analytika a štatistiky
-- ✅ Responzívny dark theme dizajn
+Po prvom spustení sa vytvorí admin účet:
+- Email: `admin@eshopbuilder.sk`  
+- Heslo: `admin123` (zmeňte po prvom prihlásení!)
 
-## 🔗 Live URLs
+## 📡 API Endpoints
 
-- **API:** http://q0wwgg4ogo0kc4wk8sogw40k.46.224.7.54.sslip.io
-- **Frontend:** (po deployi)
+### Auth
+- `POST /api/v1/auth/register` - registrácia
+- `POST /api/v1/auth/login` - prihlásenie
+- `POST /api/v1/auth/refresh` - refresh token
 
-## 📝 Licencia
+### Shops
+- `GET /api/v1/shops` - zoznam shopov používateľa
+- `POST /api/v1/shops` - vytvorenie shopu
+- `GET /api/v1/shops/:id` - detail shopu
+- `PUT /api/v1/shops/:id` - update shopu
+- `DELETE /api/v1/shops/:id` - zmazanie shopu
 
-MIT
+### Products
+- `GET /api/v1/shops/:shopId/products` - zoznam produktov
+- `POST /api/v1/shops/:shopId/products` - nový produkt
+- `PUT /api/v1/shops/:shopId/products/:id` - update
+- `DELETE /api/v1/shops/:shopId/products/:id` - zmazanie
+
+### Admin (Super Admin only)
+- `GET /api/v1/admin/stats` - platformové štatistiky
+- `GET /api/v1/admin/users` - všetci používatelia
+- `GET /api/v1/admin/shops` - všetky shopy
+- `POST /api/v1/admin/users/reset-password` - reset hesla
+
+### AI
+- `POST /api/v1/ai/generate` - všeobecná AI generácia
+- `POST /api/v1/ai/product-description` - popis produktu
+- `POST /api/v1/ai/seo` - SEO texty
+- `POST /api/v1/ai/shop-builder` - návrh dizajnu
+
+## 🎨 Šablóny
+
+Predvolené šablóny v databáze:
+- Modern Minimal
+- Fashion Boutique
+- Tech Store
+- Food & Grocery
+- Luxury Premium (premium)
+- Kids & Toys
+
+## 🔒 Bezpečnosť
+
+- JWT autentifikácia (15min access, 7d refresh)
+- Bcrypt hashing hesiel
+- Role-based access control (user, admin, super_admin)
+- SSL/TLS pre custom domény
+
+## 📊 Database
+
+PostgreSQL s týmito tabuľkami:
+- users
+- shops
+- shop_templates
+- products
+- product_images
+- product_variants
+- categories
+- orders
+- order_items
+- customers
+- shipping_methods
+- payment_methods
+- coupons
+- shop_settings
+- invoices
+- ai_generations
+- daily_stats
+- domain_verifications
 
 ---
 
-Made with ❤️ in Slovakia 🇸🇰
+Made with ❤️ for Slovak e-commerce

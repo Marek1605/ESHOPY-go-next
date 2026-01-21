@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"strings"
+	"os"
 	"time"
 
 	"eshop-builder/internal/database"
@@ -10,9 +10,18 @@ import (
 	"eshop-builder/internal/models"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func getJWTSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "your-super-secret-key-change-in-production"
+	}
+	return []byte(secret)
+}
 
 // Register creates a new user
 func Register(c *fiber.Ctx) error {
@@ -25,16 +34,18 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email and password are required"})
 	}
 
+	if len(req.Password) < 6 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Password must be at least 6 characters"})
+	}
+
+	ctx := context.Background()
+
 	// Check if user exists
 	var exists bool
-	err := database.Pool.QueryRow(context.Background(),
+	database.Pool.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
-		strings.ToLower(req.Email),
+		req.Email,
 	).Scan(&exists)
-
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database error"})
-	}
 
 	if exists {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email already registered"})
@@ -48,26 +59,21 @@ func Register(c *fiber.Ctx) error {
 
 	// Create user
 	var user models.User
-	err = database.Pool.QueryRow(context.Background(),
-		`INSERT INTO users (email, password_hash, name, plan, created_at, updated_at)
-		 VALUES ($1, $2, $3, 'FREE', NOW(), NOW())
-		 RETURNING id, email, name, plan, created_at, updated_at`,
-		strings.ToLower(req.Email), string(hashedPassword), req.Name,
-	).Scan(&user.ID, &user.Email, &user.Name, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
+	err = database.Pool.QueryRow(ctx,
+		`INSERT INTO users (email, password_hash, name, role, plan, is_active, created_at, updated_at)
+		 VALUES ($1, $2, $3, 'user', 'starter', true, NOW(), NOW())
+		 RETURNING id, email, name, role, plan, is_active, created_at, updated_at`,
+		req.Email, string(hashedPassword), req.Name,
+	).Scan(&user.ID, &user.Email, &user.Name, &user.Role, &user.Plan, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
 	}
 
 	// Generate tokens
-	token, err := middleware.GenerateToken(user.ID, user.Email)
+	token, refreshToken, err := generateTokens(user.ID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
-	}
-
-	refreshToken, err := middleware.GenerateRefreshToken(user.ID, user.Email)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate tokens"})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(models.AuthResponse{
@@ -88,31 +94,36 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email and password are required"})
 	}
 
+	ctx := context.Background()
+
 	var user models.User
-	err := database.Pool.QueryRow(context.Background(),
-		`SELECT id, email, password_hash, name, plan, created_at, updated_at
+	var passwordHash string
+	err := database.Pool.QueryRow(ctx,
+		`SELECT id, email, password_hash, name, role, plan, is_active, created_at, updated_at
 		 FROM users WHERE email = $1`,
-		strings.ToLower(req.Email),
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
+		req.Email,
+	).Scan(&user.ID, &user.Email, &passwordHash, &user.Name, &user.Role, &user.Plan, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
+	}
+
+	if !user.IsActive {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Account is disabled"})
 	}
 
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
-	// Generate tokens
-	token, err := middleware.GenerateToken(user.ID, user.Email)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
-	}
+	// Update last login
+	database.Pool.Exec(ctx, "UPDATE users SET last_login_at = NOW() WHERE id = $1", user.ID)
 
-	refreshToken, err := middleware.GenerateRefreshToken(user.ID, user.Email)
+	// Generate tokens
+	token, refreshToken, err := generateTokens(user.ID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate tokens"})
 	}
 
 	return c.JSON(models.AuthResponse{
@@ -122,40 +133,65 @@ func Login(c *fiber.Ctx) error {
 	})
 }
 
-// RefreshToken refreshes the access token
+// RefreshToken generates new tokens
 func RefreshToken(c *fiber.Ctx) error {
-	type RefreshRequest struct {
+	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
 
-	var req RefreshRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	claims, err := middleware.ParseToken(req.RefreshToken)
-	if err != nil {
+	// Parse refresh token
+	token, err := jwt.Parse(req.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+		return getJWTSecret(), nil
+	})
+
+	if err != nil || !token.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid refresh token"})
 	}
 
-	// Generate new tokens
-	token, err := middleware.GenerateToken(claims.UserID, claims.Email)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 	}
 
-	refreshToken, err := middleware.GenerateRefreshToken(claims.UserID, claims.Email)
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID in token"})
+	}
+
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate refresh token"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID format"})
+	}
+
+	// Check if user still exists and is active
+	ctx := context.Background()
+	var isActive bool
+	err = database.Pool.QueryRow(ctx,
+		"SELECT is_active FROM users WHERE id = $1",
+		userID,
+	).Scan(&isActive)
+
+	if err != nil || !isActive {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found or inactive"})
+	}
+
+	// Generate new tokens
+	newToken, newRefreshToken, err := generateTokens(userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate tokens"})
 	}
 
 	return c.JSON(fiber.Map{
-		"token":         token,
-		"refresh_token": refreshToken,
+		"token":         newToken,
+		"refresh_token": newRefreshToken,
 	})
 }
 
-// GetCurrentUser returns the current user
+// GetCurrentUser returns the current user profile
 func GetCurrentUser(c *fiber.Ctx) error {
 	userID := middleware.GetUserID(c)
 	if userID == uuid.Nil {
@@ -164,141 +200,121 @@ func GetCurrentUser(c *fiber.Ctx) error {
 
 	var user models.User
 	err := database.Pool.QueryRow(context.Background(),
-		`SELECT id, email, name, plan, created_at, updated_at
+		`SELECT id, email, name, role, plan, is_active, last_login_at, created_at, updated_at
 		 FROM users WHERE id = $1`,
 		userID,
-	).Scan(&user.ID, &user.Email, &user.Name, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.Name, &user.Role, &user.Plan, &user.IsActive, &user.LastLoginAt, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 	}
 
+	// Get shops count
+	database.Pool.QueryRow(context.Background(),
+		"SELECT COUNT(*) FROM shops WHERE user_id = $1", userID,
+	).Scan(&user.ShopsCount)
+
 	return c.JSON(user)
 }
 
-// UpdateCurrentUser updates the current user
+// UpdateCurrentUser updates the current user profile
 func UpdateCurrentUser(c *fiber.Ctx) error {
 	userID := middleware.GetUserID(c)
 	if userID == uuid.Nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
-	type UpdateRequest struct {
-		Name     *string `json:"name"`
-		Password *string `json:"password"`
+	var req struct {
+		Name            *string `json:"name"`
+		Email           *string `json:"email"`
+		CurrentPassword *string `json:"current_password"`
+		NewPassword     *string `json:"new_password"`
 	}
 
-	var req UpdateRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	// Build update query
-	updates := []string{}
-	args := []interface{}{}
-	argIndex := 1
-
-	if req.Name != nil {
-		updates = append(updates, "name = $"+string(rune('0'+argIndex)))
-		args = append(args, *req.Name)
-		argIndex++
-	}
-
-	if req.Password != nil && len(*req.Password) >= 6 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
-		if err == nil {
-			updates = append(updates, "password_hash = $"+string(rune('0'+argIndex)))
-			args = append(args, string(hashedPassword))
-			argIndex++
-		}
-	}
-
-	if len(updates) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No fields to update"})
-	}
-
-	updates = append(updates, "updated_at = NOW()")
-	args = append(args, userID)
-
-	query := "UPDATE users SET " + strings.Join(updates, ", ") + " WHERE id = $" + string(rune('0'+argIndex))
-
-	_, err := database.Pool.Exec(context.Background(), query, args...)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
-	}
-
-	// Return updated user
-	var user models.User
-	err = database.Pool.QueryRow(context.Background(),
-		`SELECT id, email, name, plan, created_at, updated_at
-		 FROM users WHERE id = $1`,
-		userID,
-	).Scan(&user.ID, &user.Email, &user.Name, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
-
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get user"})
-	}
-
-	return c.JSON(user)
-}
-
-// Helper to verify shop ownership
-func verifyShopOwnership(c *fiber.Ctx, shopID uuid.UUID) (*models.Shop, error) {
-	userID := middleware.GetUserID(c)
-	if userID == uuid.Nil {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
-	}
-
-	var shop models.Shop
-	err := database.Pool.QueryRow(context.Background(),
-		`SELECT id, user_id, name, slug, description, logo, currency, language, 
-		        primary_color, email, phone, address, facebook, instagram,
-		        meta_title, meta_description, is_active, is_published, custom_domain,
-		        created_at, updated_at
-		 FROM shops WHERE id = $1 AND user_id = $2`,
-		shopID, userID,
-	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.Description, &shop.Logo,
-		&shop.Currency, &shop.Language, &shop.PrimaryColor, &shop.Email, &shop.Phone,
-		&shop.Address, &shop.Facebook, &shop.Instagram, &shop.MetaTitle, &shop.MetaDescription,
-		&shop.IsActive, &shop.IsPublished, &shop.CustomDomain, &shop.CreatedAt, &shop.UpdatedAt)
-
-	if err != nil {
-		return nil, fiber.NewError(fiber.StatusNotFound, "Shop not found")
-	}
-
-	return &shop, nil
-}
-
-// Helper to generate order number
-func generateOrderNumber() string {
-	now := time.Now()
-	return "ORD-" + now.Format("0601") + "-" + strings.ToUpper(uuid.New().String()[:6])
-}
-
-// Helper to generate invoice number
-func generateInvoiceNumber(shopID uuid.UUID) (string, error) {
 	ctx := context.Background()
-	
-	var prefix string
-	var nextNumber int
-	
-	err := database.Pool.QueryRow(ctx,
-		`SELECT COALESCE(invoice_prefix, 'FA'), COALESCE(invoice_next_number, 1)
-		 FROM shop_settings WHERE shop_id = $1`,
-		shopID,
-	).Scan(&prefix, &nextNumber)
-	
-	if err != nil {
-		prefix = "FA"
-		nextNumber = 1
+
+	// If changing password, verify current password
+	if req.NewPassword != nil && *req.NewPassword != "" {
+		if req.CurrentPassword == nil || *req.CurrentPassword == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Current password required"})
+		}
+
+		var currentHash string
+		database.Pool.QueryRow(ctx,
+			"SELECT password_hash FROM users WHERE id = $1", userID,
+		).Scan(&currentHash)
+
+		if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(*req.CurrentPassword)); err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Current password is incorrect"})
+		}
+
+		// Hash new password
+		newHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to hash password"})
+		}
+
+		database.Pool.Exec(ctx,
+			"UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2",
+			string(newHash), userID)
 	}
-	
-	// Update next number
-	database.Pool.Exec(ctx,
-		`UPDATE shop_settings SET invoice_next_number = invoice_next_number + 1 WHERE shop_id = $1`,
-		shopID,
-	)
-	
-	year := time.Now().Year()
-	return prefix + string(rune(year)) + strings.Repeat("0", 6-len(string(rune(nextNumber)))) + string(rune(nextNumber)), nil
+
+	// Update other fields
+	if req.Name != nil {
+		database.Pool.Exec(ctx,
+			"UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2",
+			*req.Name, userID)
+	}
+
+	if req.Email != nil {
+		// Check if email is already taken
+		var exists bool
+		database.Pool.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND id != $2)",
+			*req.Email, userID,
+		).Scan(&exists)
+
+		if exists {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email already in use"})
+		}
+
+		database.Pool.Exec(ctx,
+			"UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2",
+			*req.Email, userID)
+	}
+
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func generateTokens(userID uuid.UUID) (string, string, error) {
+	// Access token (15 minutes)
+	accessClaims := jwt.MapClaims{
+		"user_id": userID.String(),
+		"exp":     time.Now().Add(15 * time.Minute).Unix(),
+		"iat":     time.Now().Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenString, err := accessToken.SignedString(getJWTSecret())
+	if err != nil {
+		return "", "", err
+	}
+
+	// Refresh token (7 days)
+	refreshClaims := jwt.MapClaims{
+		"user_id": userID.String(),
+		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+		"iat":     time.Now().Unix(),
+		"type":    "refresh",
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenString, err := refreshToken.SignedString(getJWTSecret())
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessTokenString, refreshTokenString, nil
 }
