@@ -1,107 +1,277 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
-interface ApiOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  body?: any
-  token?: string
-}
+class ApiClient {
+  private token: string | null = null;
 
-export async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-  const { method = 'GET', body, token } = options
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.token = localStorage.getItem('token');
+    }
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  setToken(token: string) {
+    this.token = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
+    }
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || 'API request failed')
+  clearToken() {
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
   }
 
-  return response.json()
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      this.clearToken();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/admin/login';
+      }
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+
+    return response.json();
+  }
+
+  // Auth
+  async login(email: string, password: string) {
+    const data = await this.request<{ token: string; user: any }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    this.setToken(data.token);
+    return data;
+  }
+
+  async register(email: string, password: string, name: string) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    });
+  }
+
+  // Products
+  async getProducts(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<{ products: any[]; total: number; page: number; per_page: number; total_pages: number }>(
+      `/products${query ? `?${query}` : ''}`
+    );
+  }
+
+  async getProduct(slug: string) {
+    return this.request<any>(`/products/${slug}`);
+  }
+
+  async searchProducts(q: string) {
+    return this.request<any[]>(`/search?q=${encodeURIComponent(q)}`);
+  }
+
+  // Admin Products
+  async adminGetProducts(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<{ products: any[]; total: number; page: number; per_page: number; total_pages: number }>(
+      `/admin/products${query ? `?${query}` : ''}`
+    );
+  }
+
+  async adminGetProduct(id: string) {
+    return this.request<any>(`/admin/products/${id}`);
+  }
+
+  async createProduct(product: any) {
+    return this.request('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    });
+  }
+
+  async updateProduct(id: string, product: any) {
+    return this.request(`/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    });
+  }
+
+  async deleteProduct(id: string) {
+    return this.request(`/admin/products/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkProductAction(ids: string[], action: string) {
+    return this.request('/admin/products/bulk-action', {
+      method: 'POST',
+      body: JSON.stringify({ ids, action }),
+    });
+  }
+
+  // Categories
+  async getCategories() {
+    return this.request<any[]>('/categories');
+  }
+
+  async adminGetCategories() {
+    return this.request<any[]>('/admin/categories');
+  }
+
+  async createCategory(category: any) {
+    return this.request('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(category),
+    });
+  }
+
+  async updateCategory(id: string, category: any) {
+    return this.request(`/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(category),
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.request(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Feeds
+  async getFeeds() {
+    return this.request<any[]>('/admin/feeds');
+  }
+
+  async getFeed(id: string) {
+    return this.request<any>(`/admin/feeds/${id}`);
+  }
+
+  async createFeed(feed: any) {
+    return this.request('/admin/feeds', {
+      method: 'POST',
+      body: JSON.stringify(feed),
+    });
+  }
+
+  async updateFeed(id: string, feed: any) {
+    return this.request(`/admin/feeds/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(feed),
+    });
+  }
+
+  async deleteFeed(id: string) {
+    return this.request(`/admin/feeds/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async previewFeed(url: string, type: string, xmlItemPath?: string, csvDelimiter?: string) {
+    return this.request<{
+      items: any[];
+      fields: string[];
+      total_count: number;
+      item_path: string;
+      feed_type: string;
+    }>('/admin/feeds/preview', {
+      method: 'POST',
+      body: JSON.stringify({ url, type, xml_item_path: xmlItemPath, csv_delimiter: csvDelimiter }),
+    });
+  }
+
+  async autoMapping(fields: string[]) {
+    return this.request<{ source_field: string; target_field: string; confidence: number }[]>(
+      '/admin/feeds/auto-mapping',
+      {
+        method: 'POST',
+        body: JSON.stringify({ fields }),
+      }
+    );
+  }
+
+  async startImport(feedId: string) {
+    return this.request<{ status: string; feed_id: string }>(`/admin/feeds/${feedId}/import`, {
+      method: 'POST',
+    });
+  }
+
+  async stopImport(feedId: string) {
+    return this.request(`/admin/feeds/${feedId}/stop`, {
+      method: 'POST',
+    });
+  }
+
+  async getImportProgress(feedId: string) {
+    return this.request<{
+      feed_id: string;
+      history_id: string;
+      status: string;
+      percent: number;
+      total: number;
+      processed: number;
+      created: number;
+      updated: number;
+      skipped: number;
+      errors: number;
+      message: string;
+      elapsed: number;
+      eta: number;
+      speed: number;
+      logs: { time: string; level: string; message: string }[];
+    }>(`/admin/feeds/${feedId}/progress`);
+  }
+
+  async getImportHistory(feedId: string) {
+    return this.request<any[]>(`/admin/feeds/${feedId}/history`);
+  }
+
+  // Dashboard
+  async getDashboardStats() {
+    return this.request<{
+      total_products: number;
+      total_categories: number;
+      total_feeds: number;
+      total_views: number;
+      total_clicks: number;
+    }>('/admin/stats');
+  }
+
+  async getRecentActivity() {
+    return this.request<any[]>('/admin/recent-activity');
+  }
+
+  // Shop Config
+  async getShopConfig() {
+    return this.request<any>('/admin/shop-config');
+  }
+
+  async updateShopConfig(config: any) {
+    return this.request('/admin/shop-config', {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  }
 }
 
-// Auth
-export const auth = {
-  register: (data: { email: string; password: string; name: string }) =>
-    api<{ token: string; user: any }>('/auth/register', { method: 'POST', body: data }),
-  
-  login: (data: { email: string; password: string }) =>
-    api<{ token: string; user: any }>('/auth/login', { method: 'POST', body: data }),
-  
-  me: (token: string) =>
-    api<any>('/me', { token }),
-}
-
-// Shops
-export const shops = {
-  list: (token: string) =>
-    api<{ shops: any[] }>('/shops', { token }),
-  
-  get: (token: string, id: string) =>
-    api<any>(`/shops/${id}`, { token }),
-  
-  create: (token: string, data: { name: string; currency?: string }) =>
-    api<any>('/shops', { method: 'POST', body: data, token }),
-  
-  update: (token: string, id: string, data: any) =>
-    api<any>(`/shops/${id}`, { method: 'PUT', body: data, token }),
-  
-  delete: (token: string, id: string) =>
-    api<void>(`/shops/${id}`, { method: 'DELETE', token }),
-  
-  stats: (token: string, id: string) =>
-    api<any>(`/shops/${id}/stats`, { token }),
-}
-
-// Products
-export const products = {
-  list: (token: string, shopId: string, params?: { page?: number; limit?: number }) =>
-    api<{ data: any[]; pagination: any }>(`/shops/${shopId}/products?page=${params?.page || 1}&limit=${params?.limit || 20}`, { token }),
-  
-  get: (token: string, shopId: string, id: string) =>
-    api<any>(`/shops/${shopId}/products/${id}`, { token }),
-  
-  create: (token: string, shopId: string, data: any) =>
-    api<any>(`/shops/${shopId}/products`, { method: 'POST', body: data, token }),
-  
-  update: (token: string, shopId: string, id: string, data: any) =>
-    api<any>(`/shops/${shopId}/products/${id}`, { method: 'PUT', body: data, token }),
-  
-  delete: (token: string, shopId: string, id: string) =>
-    api<void>(`/shops/${shopId}/products/${id}`, { method: 'DELETE', token }),
-}
-
-// Orders
-export const orders = {
-  list: (token: string, shopId: string) =>
-    api<{ orders: any[] }>(`/shops/${shopId}/orders`, { token }),
-  
-  get: (token: string, shopId: string, id: string) =>
-    api<any>(`/shops/${shopId}/orders/${id}`, { token }),
-  
-  updateStatus: (token: string, shopId: string, id: string, status: string) =>
-    api<any>(`/shops/${shopId}/orders/${id}`, { method: 'PUT', body: { status }, token }),
-}
-
-// Customers
-export const customers = {
-  list: (token: string, shopId: string) =>
-    api<{ customers: any[] }>(`/shops/${shopId}/customers`, { token }),
-}
-
-// Analytics
-export const analytics = {
-  get: (token: string, shopId: string) =>
-    api<any>(`/shops/${shopId}/analytics`, { token }),
-}
+export const api = new ApiClient();
+export default api;

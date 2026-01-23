@@ -1,570 +1,250 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  Users, Store, Package, ShoppingCart, DollarSign, TrendingUp,
-  Search, Filter, MoreVertical, Eye, Edit, Trash2, Key, 
-  CheckCircle, XCircle, Globe, ArrowUpRight, ArrowDownRight
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  Package,
+  FolderTree,
+  Rss,
+  Eye,
+  MousePointerClick,
+  TrendingUp,
+  ArrowRight,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
+import api from '@/lib/api';
 
-interface PlatformStats {
-  total_users: number;
-  total_shops: number;
-  active_shops: number;
+interface Stats {
   total_products: number;
-  total_orders: number;
-  total_revenue: number;
-  monthly_revenue: number;
-  new_users_this_month: number;
-  new_shops_this_month: number;
+  total_categories: number;
+  total_feeds: number;
+  total_views: number;
+  total_clicks: number;
 }
 
-interface User {
+interface Activity {
   id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  plan: string;
-  is_active: boolean;
-  last_login_at: string | null;
-  created_at: string;
-  shops_count: number;
-  total_revenue: number;
+  feed_id: string;
+  started_at: string;
+  finished_at: string;
+  duration: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  status: string;
 }
 
-interface Shop {
-  id: string;
-  user_id: string;
-  name: string;
-  slug: string;
-  custom_domain: string | null;
-  domain_verified: boolean;
-  is_active: boolean;
-  is_published: boolean;
-  created_at: string;
-  user_email: string;
-  user_name: string | null;
-  products_count: number;
-  orders_count: number;
-  customers_count: number;
-  revenue: number;
-}
-
-export default function SuperAdminDashboard() {
-  const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'shops' | 'templates'>('overview');
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [activity, setActivity] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+    loadData();
+  }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
-
+  const loadData = async () => {
     try {
-      if (activeTab === 'overview' || !stats) {
-        const statsRes = await fetch('/api/v1/admin/stats', { headers });
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-
-      if (activeTab === 'users') {
-        const usersRes = await fetch(`/api/v1/admin/users?search=${searchTerm}`, { headers });
-        const usersData = await usersRes.json();
-        setUsers(usersData.data || []);
-      }
-
-      if (activeTab === 'shops') {
-        const shopsRes = await fetch(`/api/v1/admin/shops?search=${searchTerm}`, { headers });
-        const shopsData = await shopsRes.json();
-        setShops(shopsData.data || []);
-      }
+      const [statsData, activityData] = await Promise.all([
+        api.getDashboardStats(),
+        api.getRecentActivity(),
+      ]);
+      setStats(statsData);
+      setActivity(activityData);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleResetPassword = async () => {
-    if (!selectedUser || !newPassword) return;
-    
-    const token = localStorage.getItem('token');
-    await fetch('/api/v1/admin/users/reset-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ user_id: selectedUser.id, new_password: newPassword }),
-    });
-    
-    setShowResetModal(false);
-    setNewPassword('');
-    setSelectedUser(null);
+  const statCards = [
+    {
+      title: 'Products',
+      value: stats?.total_products || 0,
+      icon: Package,
+      color: 'from-blue-500 to-blue-600',
+      href: '/admin/products',
+    },
+    {
+      title: 'Categories',
+      value: stats?.total_categories || 0,
+      icon: FolderTree,
+      color: 'from-purple-500 to-purple-600',
+      href: '/admin/categories',
+    },
+    {
+      title: 'Active Feeds',
+      value: stats?.total_feeds || 0,
+      icon: Rss,
+      color: 'from-green-500 to-green-600',
+      href: '/admin/feeds',
+    },
+    {
+      title: 'Total Views',
+      value: stats?.total_views || 0,
+      icon: Eye,
+      color: 'from-orange-500 to-orange-600',
+      href: '/admin/products',
+    },
+  ];
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
+      case 'failed':
+        return <XCircle className="w-5 h-5 text-red-400" />;
+      case 'running':
+        return <Clock className="w-5 h-5 text-blue-400 animate-spin" />;
+      default:
+        return <AlertCircle className="w-5 h-5 text-yellow-400" />;
+    }
   };
 
-  const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
-    const token = localStorage.getItem('token');
-    await fetch(`/api/v1/admin/users/${userId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ is_active: !isActive }),
-    });
-    fetchData();
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
   };
 
-  const handleToggleShopStatus = async (shopId: string, field: 'is_active' | 'is_published', value: boolean) => {
-    const token = localStorage.getItem('token');
-    await fetch(`/api/v1/admin/shops/${shopId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ [field]: !value }),
-    });
-    fetchData();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: 'EUR' }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sk-SK');
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="space-y-8">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Super Admin Panel</h1>
-            <p className="text-gray-400 text-sm">Správa platformy EshopBuilder</p>
+      <div>
+        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+        <p className="text-gray-400 mt-1">Welcome to EshopBuilder v3 Admin Panel</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat) => (
+          <Link
+            key={stat.title}
+            href={stat.href}
+            className="card card-hover p-6 group"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">{stat.title}</p>
+                <p className="text-3xl font-bold text-white mt-2">
+                  {stat.value.toLocaleString()}
+                </p>
+              </div>
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                <stat.icon className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-4 text-sm text-gray-400 group-hover:text-blue-400 transition-colors">
+              <span>View details</span>
+              <ArrowRight className="w-4 h-4" />
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Import Feed Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+              <Rss className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Feed Import</h2>
+              <p className="text-gray-400 text-sm">Import products from external feeds</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="px-3 py-1 bg-purple-600 rounded-full text-sm">Super Admin</span>
-          </div>
+          <p className="text-gray-300 mb-4">
+            Supports Heureka XML, CSV, and JSON formats. Automatically map fields and import thousands of products.
+          </p>
+          <Link href="/admin/feeds" className="btn-primary inline-flex items-center gap-2">
+            Manage Feeds
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-      </header>
 
-      {/* Navigation */}
-      <nav className="bg-gray-900 border-b border-gray-800 px-6">
-        <div className="flex gap-1">
-          {[
-            { id: 'overview', label: 'Prehľad', icon: TrendingUp },
-            { id: 'users', label: 'Používatelia', icon: Users },
-            { id: 'shops', label: 'E-shopy', icon: Store },
-            { id: 'templates', label: 'Šablóny', icon: Package },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-500'
-                  : 'border-transparent text-gray-400 hover:text-white'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="p-6">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && stats && (
-          <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                title="Celkové tržby"
-                value={formatCurrency(stats.total_revenue)}
-                icon={DollarSign}
-                trend={12.5}
-                color="green"
-              />
-              <StatCard
-                title="Aktívne e-shopy"
-                value={stats.active_shops.toString()}
-                subtitle={`z ${stats.total_shops} celkom`}
-                icon={Store}
-                color="blue"
-              />
-              <StatCard
-                title="Používatelia"
-                value={stats.total_users.toString()}
-                subtitle={`+${stats.new_users_this_month} tento mesiac`}
-                icon={Users}
-                color="purple"
-              />
-              <StatCard
-                title="Objednávky"
-                value={stats.total_orders.toString()}
-                icon={ShoppingCart}
-                color="orange"
-              />
+        {/* Add Product Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <Package className="w-5 h-5 text-white" />
             </div>
-
-            {/* Monthly Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                <h3 className="text-lg font-semibold mb-4">Mesačné tržby</h3>
-                <div className="text-3xl font-bold text-green-500">
-                  {formatCurrency(stats.monthly_revenue)}
-                </div>
-                <p className="text-gray-400 text-sm mt-1">Tento mesiac</p>
-              </div>
-              
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                <h3 className="text-lg font-semibold mb-4">Nové registrácie</h3>
-                <div className="flex gap-8">
-                  <div>
-                    <div className="text-3xl font-bold text-blue-500">{stats.new_users_this_month}</div>
-                    <p className="text-gray-400 text-sm">Používatelia</p>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-purple-500">{stats.new_shops_this_month}</div>
-                    <p className="text-gray-400 text-sm">E-shopy</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-              <h3 className="text-lg font-semibold mb-4">Súhrn platformy</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold">{stats.total_products}</div>
-                  <div className="text-gray-400 text-sm">Produkty</div>
-                </div>
-                <div className="text-center p-4 bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold">{stats.total_shops}</div>
-                  <div className="text-gray-400 text-sm">E-shopy</div>
-                </div>
-                <div className="text-center p-4 bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold">{stats.active_shops}</div>
-                  <div className="text-gray-400 text-sm">Publikované</div>
-                </div>
-                <div className="text-center p-4 bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold">{stats.total_orders}</div>
-                  <div className="text-gray-400 text-sm">Objednávky</div>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Products</h2>
+              <p className="text-gray-400 text-sm">Manage your product catalog</p>
             </div>
           </div>
-        )}
-
-        {/* Users Tab */}
-        {activeTab === 'users' && (
-          <div className="space-y-4">
-            {/* Search */}
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Hľadať používateľov..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchData()}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Hľadať
-              </button>
-            </div>
-
-            {/* Users Table */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Používateľ</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Plán</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">E-shopy</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Tržby</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Stav</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Registrácia</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-400">Akcie</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-800/50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <div className="font-medium">{user.name || 'Bez mena'}</div>
-                          <div className="text-sm text-gray-400">{user.email}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          user.plan === 'enterprise' ? 'bg-purple-600' :
-                          user.plan === 'business' ? 'bg-blue-600' :
-                          'bg-gray-600'
-                        }`}>
-                          {user.plan}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">{user.shops_count}</td>
-                      <td className="px-4 py-3">{formatCurrency(user.total_revenue)}</td>
-                      <td className="px-4 py-3">
-                        {user.is_active ? (
-                          <span className="flex items-center gap-1 text-green-500">
-                            <CheckCircle className="w-4 h-4" /> Aktívny
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-red-500">
-                            <XCircle className="w-4 h-4" /> Neaktívny
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400">{formatDate(user.created_at)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowResetModal(true);
-                            }}
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                            title="Reset hesla"
-                          >
-                            <Key className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleToggleUserStatus(user.id, user.is_active)}
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                            title={user.is_active ? 'Deaktivovať' : 'Aktivovať'}
-                          >
-                            {user.is_active ? <XCircle className="w-4 h-4 text-red-500" /> : <CheckCircle className="w-4 h-4 text-green-500" />}
-                          </button>
-                          <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Detail">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Shops Tab */}
-        {activeTab === 'shops' && (
-          <div className="space-y-4">
-            {/* Search */}
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Hľadať e-shopy..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchData()}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Hľadať
-              </button>
-            </div>
-
-            {/* Shops Table */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">E-shop</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Vlastník</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Doména</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Produkty</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Objednávky</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Tržby</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Stav</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-400">Akcie</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {shops.map((shop) => (
-                    <tr key={shop.id} className="hover:bg-gray-800/50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <div className="font-medium">{shop.name}</div>
-                          <div className="text-sm text-gray-400">{shop.slug}.eshopbuilder.sk</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm">{shop.user_email}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {shop.custom_domain ? (
-                          <div className="flex items-center gap-2">
-                            <Globe className="w-4 h-4" />
-                            <span>{shop.custom_domain}</span>
-                            {shop.domain_verified ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-yellow-500" />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">{shop.products_count}</td>
-                      <td className="px-4 py-3">{shop.orders_count}</td>
-                      <td className="px-4 py-3">{formatCurrency(shop.revenue)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span className={`text-xs ${shop.is_active ? 'text-green-500' : 'text-red-500'}`}>
-                            {shop.is_active ? 'Aktívny' : 'Neaktívny'}
-                          </span>
-                          <span className={`text-xs ${shop.is_published ? 'text-blue-500' : 'text-gray-500'}`}>
-                            {shop.is_published ? 'Publikovaný' : 'Skrytý'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleToggleShopStatus(shop.id, 'is_published', shop.is_published)}
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                            title={shop.is_published ? 'Skryť' : 'Publikovať'}
-                          >
-                            {shop.is_published ? <XCircle className="w-4 h-4 text-yellow-500" /> : <CheckCircle className="w-4 h-4 text-green-500" />}
-                          </button>
-                          <a
-                            href={`/s/${shop.slug}`}
-                            target="_blank"
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                            title="Zobraziť"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Templates Tab */}
-        {activeTab === 'templates' && (
-          <div className="text-center py-12 text-gray-400">
-            Správa šablón - Tu môžete pridávať a upravovať šablóny e-shopov
-          </div>
-        )}
-      </main>
-
-      {/* Reset Password Modal */}
-      {showResetModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-800">
-            <h3 className="text-lg font-semibold mb-4">Reset hesla</h3>
-            <p className="text-gray-400 mb-4">
-              Resetovať heslo pre: <strong>{selectedUser.email}</strong>
-            </p>
-            <input
-              type="password"
-              placeholder="Nové heslo"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg mb-4 focus:outline-none focus:border-blue-500"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowResetModal(false);
-                  setNewPassword('');
-                }}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-              >
-                Zrušiť
-              </button>
-              <button
-                onClick={handleResetPassword}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Resetovať
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ 
-  title, 
-  value, 
-  subtitle, 
-  icon: Icon, 
-  trend, 
-  color 
-}: { 
-  title: string; 
-  value: string; 
-  subtitle?: string;
-  icon: any; 
-  trend?: number;
-  color: string;
-}) {
-  const colorClasses = {
-    green: 'bg-green-600/20 text-green-500',
-    blue: 'bg-blue-600/20 text-blue-500',
-    purple: 'bg-purple-600/20 text-purple-500',
-    orange: 'bg-orange-600/20 text-orange-500',
-  };
-
-  return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-gray-400 text-sm">{title}</span>
-        <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
-          <Icon className="w-5 h-5" />
+          <p className="text-gray-300 mb-4">
+            Add, edit, and organize products. Bulk actions available for efficient management.
+          </p>
+          <Link href="/admin/products" className="btn-secondary inline-flex items-center gap-2">
+            View Products
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      {subtitle && <div className="text-gray-400 text-sm mt-1">{subtitle}</div>}
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 mt-2 text-sm ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {trend >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-          {Math.abs(trend)}% oproti minulému mesiacu
-        </div>
-      )}
+
+      {/* Recent Activity */}
+      <div className="card p-6">
+        <h2 className="text-xl font-semibold text-white mb-6">Recent Import Activity</h2>
+        
+        {activity.length === 0 ? (
+          <div className="text-center py-12">
+            <Rss className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400">No import activity yet</p>
+            <Link href="/admin/feeds" className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block">
+              Create your first feed →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {activity.slice(0, 5).map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5"
+              >
+                <div className="flex items-center gap-4">
+                  {getStatusIcon(item.status)}
+                  <div>
+                    <p className="text-white font-medium">
+                      Import {item.status}
+                    </p>
+                    <p className="text-gray-400 text-sm">
+                      {new Date(item.started_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-green-400">+{item.created} created</span>
+                    <span className="text-blue-400">{item.updated} updated</span>
+                    {item.errors > 0 && (
+                      <span className="text-red-400">{item.errors} errors</span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Duration: {formatDuration(item.duration)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

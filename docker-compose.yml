@@ -2,8 +2,9 @@ version: '3.8'
 
 services:
   # PostgreSQL Database
-  db:
+  postgres:
     image: postgres:16-alpine
+    container_name: eshopbuilder-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -11,39 +12,55 @@ services:
       POSTGRES_DB: eshopbuilder
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    networks:
+      - eshopbuilder-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # Go API
+  # Go Backend API
   api:
-    build: ./api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eshopbuilder-api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/eshopbuilder?sslmode=disable
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-me}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/eshopbuilder?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production}
       PORT: 8080
+      ENVIRONMENT: production
     ports:
       - "8080:8080"
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
+    networks:
+      - eshopbuilder-network
 
   # Next.js Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:8080/api/v1}
+    container_name: eshopbuilder-frontend
     restart: unless-stopped
     environment:
-      API_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:8080/api/v1}
     ports:
       - "3000:3000"
     depends_on:
       - api
+    networks:
+      - eshopbuilder-network
+
+networks:
+  eshopbuilder-network:
+    driver: bridge
 
 volumes:
   postgres_data:

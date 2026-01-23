@@ -1,160 +1,169 @@
-# EshopBuilder v2.0
+# EshopBuilder v3
 
-Kompletná platforma na tvorbu e-shopov s AI asistentom.
+Modern e-commerce platform with feed import system. Built with Go backend and Next.js frontend.
 
-## 🚀 Funkcie
+## Features
 
-### Pre zákazníkov (majiteľov e-shopov)
-- **AI Shop Builder** - vytvorte e-shop s pomocou AI
-- **Šablóny** - predpripravené dizajnové šablóny
-- **Správa produktov** - CRUD operácie, varianty, obrázky
-- **Objednávky** - sledovanie, stavy, faktúry
-- **Zákazníci** - databáza zákazníkov
-- **Platobné brány** - GoPay, Stripe, ComGate, dobierka
-- **Doručenie** - konfigurácia dopravných metód
-- **Analytics** - štatistiky, grafy
-- **Vlastná doména** - DNS verifikácia, SSL
+- 🚀 **Skip Template** - Go directly to admin dashboard
+- 🎨 **Aurora Template** - Modern dark theme with gradient effects
+- 📦 **Feed Import System** - Support for Heureka XML, CSV, JSON
+- 🔄 **Auto Field Mapping** - Automatically detect and map feed fields
+- 📊 **Real-time Progress** - Live import progress tracking
+- 🛠️ **Admin Dashboard** - Full product and category management
+- 🔐 **JWT Authentication** - Secure admin access
 
-### Pre admina (teba)
-- **Super Admin Panel** - /admin
-- **Prehľad všetkých shopov** - zoznam, štatistiky
-- **Správa používateľov** - edit, reset hesla, deaktivácia
-- **Správa šablón** - pridávanie/úprava šablón
+## Quick Start
 
-## 📁 Štruktúra
-
-```
-eshopbuilder-complete/
-├── api/                    # Go backend
-│   ├── cmd/server/        # Main entry point
-│   ├── internal/
-│   │   ├── database/      # Database connection & migrations
-│   │   ├── handlers/      # HTTP handlers
-│   │   ├── middleware/    # JWT auth middleware
-│   │   └── models/        # Data models
-│   ├── Dockerfile
-│   └── go.mod
-├── frontend/              # Next.js frontend
-│   ├── src/app/
-│   │   ├── admin/        # Super admin panel
-│   │   ├── dashboard/    # User dashboard
-│   │   │   └── shop-builder/  # AI shop builder wizard
-│   │   ├── login/
-│   │   └── register/
-│   ├── Dockerfile
-│   └── package.json
-└── docker-compose.yml
-```
-
-## 🛠️ Inštalácia
-
-### S Docker
+### Using Docker Compose
 
 ```bash
-# Nastaviť environment
-cp api/.env.example api/.env
-# Upraviť .env (JWT_SECRET, ANTHROPIC_API_KEY)
+# Clone and navigate
+cd eshopbuilder-v3
 
-# Spustiť
-docker-compose up -d
-```
-
-### Manuálne
-
-#### API (Go)
-```bash
-cd api
+# Copy environment
 cp .env.example .env
-# Upraviť .env
 
-go mod download
-go run cmd/server/main.go
+# Start all services
+docker-compose up -d
+
+# Access
+# Frontend: http://localhost:3000
+# API: http://localhost:8080
 ```
 
-#### Frontend (Next.js)
+### Default Login
+
+- **Email:** admin@example.com
+- **Password:** admin123
+
+## Architecture
+
+```
+eshopbuilder-v3/
+├── backend/                 # Go API
+│   ├── cmd/                 # Entry point
+│   ├── internal/
+│   │   ├── config/          # Configuration
+│   │   ├── database/        # PostgreSQL connection
+│   │   ├── handlers/        # HTTP handlers
+│   │   ├── importer/        # Feed import engine
+│   │   │   ├── parser.go    # XML/CSV/JSON parsers
+│   │   │   └── engine.go    # Import orchestration
+│   │   ├── middleware/      # Auth middleware
+│   │   └── models/          # Data structures
+│   └── migrations/          # Database schema
+│
+├── frontend/                # Next.js 14
+│   └── src/
+│       ├── app/
+│       │   ├── admin/       # Admin pages
+│       │   │   ├── feeds/   # Feed management
+│       │   │   ├── products/# Product management
+│       │   │   └── ...
+│       │   └── page.tsx     # Redirect to admin
+│       ├── components/      # UI components
+│       ├── lib/             # API client
+│       └── styles/          # Global CSS
+│
+└── docker-compose.yml       # Container orchestration
+```
+
+## Feed Import Flow
+
+1. **Create Feed** - Enter URL and select type (XML/CSV/JSON)
+2. **Preview** - System fetches and parses feed sample
+3. **Auto-Mapping** - Fields are automatically mapped to product attributes
+4. **Configure** - Adjust mappings, set transforms, defaults
+5. **Import** - Run import with real-time progress tracking
+
+### Supported Formats
+
+#### Heureka XML
+```xml
+<SHOP>
+  <SHOPITEM>
+    <PRODUCTNAME>Product Name</PRODUCTNAME>
+    <DESCRIPTION>Description</DESCRIPTION>
+    <PRICE_VAT>19.99</PRICE_VAT>
+    <IMGURL>https://...</IMGURL>
+    <CATEGORYTEXT>Category | Subcategory</CATEGORYTEXT>
+  </SHOPITEM>
+</SHOP>
+```
+
+#### CSV
+```csv
+name;price;description;image_url;category
+Product 1;19.99;Description;https://...;Electronics
+```
+
+#### JSON
+```json
+{
+  "products": [
+    {
+      "name": "Product Name",
+      "price": 19.99,
+      "description": "Description",
+      "image": "https://...",
+      "category": "Electronics"
+    }
+  ]
+}
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/login` - Login
+- `POST /api/v1/auth/register` - Register
+
+### Products
+- `GET /api/v1/products` - List products (public)
+- `GET /api/v1/products/:slug` - Get product (public)
+- `GET /api/v1/admin/products` - Admin list
+- `POST /api/v1/admin/products` - Create product
+- `PUT /api/v1/admin/products/:id` - Update product
+- `DELETE /api/v1/admin/products/:id` - Delete product
+
+### Feeds
+- `GET /api/v1/admin/feeds` - List feeds
+- `POST /api/v1/admin/feeds` - Create feed
+- `GET /api/v1/admin/feeds/:id` - Get feed
+- `PUT /api/v1/admin/feeds/:id` - Update feed
+- `DELETE /api/v1/admin/feeds/:id` - Delete feed
+- `POST /api/v1/admin/feeds/preview` - Preview feed
+- `POST /api/v1/admin/feeds/auto-mapping` - Auto-map fields
+- `POST /api/v1/admin/feeds/:id/import` - Start import
+- `POST /api/v1/admin/feeds/:id/stop` - Stop import
+- `GET /api/v1/admin/feeds/:id/progress` - Get progress
+- `GET /api/v1/admin/feeds/:id/history` - Import history
+
+## Development
+
+### Backend
+```bash
+cd backend
+go mod download
+go run cmd/main.go
+```
+
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## 🔑 Default admin login
+## Deployment on Coolify
 
-Po prvom spustení sa vytvorí admin účet:
-- Email: `admin@eshopbuilder.sk`  
-- Heslo: `admin123` (zmeňte po prvom prihlásení!)
+1. Create new service from Docker Compose
+2. Point to your git repository
+3. Set environment variables:
+   - `JWT_SECRET` - Secure random string
+   - `NEXT_PUBLIC_API_URL` - Your API URL
+4. Deploy
 
-## 📡 API Endpoints
+## License
 
-### Auth
-- `POST /api/v1/auth/register` - registrácia
-- `POST /api/v1/auth/login` - prihlásenie
-- `POST /api/v1/auth/refresh` - refresh token
-
-### Shops
-- `GET /api/v1/shops` - zoznam shopov používateľa
-- `POST /api/v1/shops` - vytvorenie shopu
-- `GET /api/v1/shops/:id` - detail shopu
-- `PUT /api/v1/shops/:id` - update shopu
-- `DELETE /api/v1/shops/:id` - zmazanie shopu
-
-### Products
-- `GET /api/v1/shops/:shopId/products` - zoznam produktov
-- `POST /api/v1/shops/:shopId/products` - nový produkt
-- `PUT /api/v1/shops/:shopId/products/:id` - update
-- `DELETE /api/v1/shops/:shopId/products/:id` - zmazanie
-
-### Admin (Super Admin only)
-- `GET /api/v1/admin/stats` - platformové štatistiky
-- `GET /api/v1/admin/users` - všetci používatelia
-- `GET /api/v1/admin/shops` - všetky shopy
-- `POST /api/v1/admin/users/reset-password` - reset hesla
-
-### AI
-- `POST /api/v1/ai/generate` - všeobecná AI generácia
-- `POST /api/v1/ai/product-description` - popis produktu
-- `POST /api/v1/ai/seo` - SEO texty
-- `POST /api/v1/ai/shop-builder` - návrh dizajnu
-
-## 🎨 Šablóny
-
-Predvolené šablóny v databáze:
-- Modern Minimal
-- Fashion Boutique
-- Tech Store
-- Food & Grocery
-- Luxury Premium (premium)
-- Kids & Toys
-
-## 🔒 Bezpečnosť
-
-- JWT autentifikácia (15min access, 7d refresh)
-- Bcrypt hashing hesiel
-- Role-based access control (user, admin, super_admin)
-- SSL/TLS pre custom domény
-
-## 📊 Database
-
-PostgreSQL s týmito tabuľkami:
-- users
-- shops
-- shop_templates
-- products
-- product_images
-- product_variants
-- categories
-- orders
-- order_items
-- customers
-- shipping_methods
-- payment_methods
-- coupons
-- shop_settings
-- invoices
-- ai_generations
-- daily_stats
-- domain_verifications
-
----
-
-Made with ❤️ for Slovak e-commerce
+MIT
