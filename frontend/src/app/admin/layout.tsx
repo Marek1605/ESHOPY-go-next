@@ -8,6 +8,13 @@ import {
   Zap, Globe, CreditCard
 } from 'lucide-react';
 
+type MenuItem = {
+  href?: string;
+  icon?: any;
+  label?: string;
+  divider?: boolean;
+};
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [router]);
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/users', icon: Users, label: 'Používatelia' },
     { href: '/admin/shops', icon: Store, label: 'Obchody' },
@@ -86,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href!}
                 className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {item.icon && <item.icon className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && <span className="flex-1">{item.label}</span>}
               </Link>
             )
@@ -159,7 +166,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     onClick={() => setMobileMenuOpen(false)}
                     className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
                   >
-                    <item.icon className="w-5 h-5" />
+                    {item.icon && <item.icon className="w-5 h-5" />
                     <span className="flex-1">{item.label}</span>
                   </Link>
                 )

@@ -91,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href!}
                 className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {item.icon && <item.icon className="w-5 h-5 flex-shrink-0" />
                 {sidebarOpen && (
                   <>
                     <span className="flex-1">{item.label}</span>
@@ -174,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
                   >
-                    <item.icon className="w-5 h-5" />
+                    {item.icon && <item.icon className="w-5 h-5" />
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
                       <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
