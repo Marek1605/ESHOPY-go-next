@@ -5,14 +5,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Sparkles, LayoutDashboard, Package, ShoppingCart, Users, BarChart3,
   Settings, Palette, LogOut, Menu, X, Bell, Search, ChevronDown,
-  Store, CreditCard, Truck, MessageSquare, HelpCircle, FileText
+  Store, CreditCard, Truck, HelpCircle
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [shopName, setShopName] = useState('Môj obchod');
+  const [shopName] = useState('Môj obchod');
   const pathname = usePathname();
   const router = useRouter();
 
@@ -31,11 +31,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/orders', icon: ShoppingCart, label: 'Objednávky', badge: 3 },
     { href: '/dashboard/customers', icon: Users, label: 'Zákazníci' },
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Analytika' },
-    { divider: true },
+  ];
+
+  const menuItems2 = [
     { href: '/dashboard/templates', icon: Palette, label: 'Šablóny' },
     { href: '/dashboard/payments', icon: CreditCard, label: 'Platby' },
     { href: '/dashboard/shipping', icon: Truck, label: 'Doprava' },
-    { divider: true },
     { href: '/dashboard/settings', icon: Settings, label: 'Nastavenia' },
   ];
 
@@ -45,13 +46,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login');
   };
 
+  const IconComponent = ({ icon: Icon, className }: { icon: any; className: string }) => (
+    <Icon className={className} />
+  );
+
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Sidebar - Desktop */}
-      <aside className={`fixed top-0 left-0 h-full bg-slate-900 border-r border-slate-800 z-40 transition-all duration-300 hidden lg:block ${
-        sidebarOpen ? 'w-64' : 'w-20'
-      }`}>
-        {/* Logo */}
+      <aside className={`fixed top-0 left-0 h-full bg-slate-900 border-r border-slate-800 z-40 transition-all duration-300 hidden lg:block ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -59,15 +60,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             {sidebarOpen && <span className="font-bold text-lg">EshopBuilder</span>}
           </Link>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-slate-800 rounded-lg transition"
-          >
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-800 rounded-lg transition">
             <Menu className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-
-        {/* Shop Selector */}
         {sidebarOpen && (
           <div className="p-4 border-b border-slate-800">
             <button className="w-full flex items-center justify-between p-3 bg-slate-800 rounded-xl hover:bg-slate-700 transition">
@@ -79,35 +75,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
         )}
-
-        {/* Navigation */}
         <nav className="p-4 space-y-1 overflow-y-auto" style={{ height: 'calc(100vh - 180px)' }}>
-          {menuItems.map((item, i) => (
-            item.divider ? (
-              <div key={i} className="h-px bg-slate-800 my-4" />
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href!}
-                className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
-              >
-                {item.icon && <item.icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            )
+          {menuItems.map((item) => (
+            <Link key={item.href} href={item.href} className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}>
+              <IconComponent icon={item.icon} className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && (
+                <>
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">{item.badge}</span>}
+                </>
+              )}
+            </Link>
+          ))}
+          <div className="h-px bg-slate-800 my-4" />
+          {menuItems2.map((item) => (
+            <Link key={item.href} href={item.href} className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}>
+              <IconComponent icon={item.icon} className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && <span className="flex-1">{item.label}</span>}
+            </Link>
           ))}
         </nav>
-
-        {/* User */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-900">
           {sidebarOpen ? (
             <div className="flex items-center gap-3">
@@ -129,8 +116,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </div>
       </aside>
-
-      {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 z-50 flex items-center justify-between px-4">
         <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg">
           <Menu className="w-6 h-6" />
@@ -146,62 +131,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
       </header>
-
-      {/* Mobile Sidebar */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
           <aside className="absolute top-0 left-0 h-full w-72 bg-slate-900 animate-slideIn">
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <span className="font-bold text-lg">EshopBuilder</span>
-              </Link>
+              <span className="font-bold text-lg">EshopBuilder</span>
               <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-800 rounded-lg">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <nav className="p-4 space-y-1">
-              {menuItems.map((item, i) => (
-                item.divider ? (
-                  <div key={i} className="h-px bg-slate-800 my-4" />
-                ) : (
-                  <Link
-                    key={item.href}
-                    href={item.href!}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
-                  >
-                    {item.icon && <item.icon className="w-5 h-5" />
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                )
+              {[...menuItems, ...menuItems2].map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}>
+                  <IconComponent icon={item.icon} className="w-5 h-5" />
+                  <span className="flex-1">{item.label}</span>
+                </Link>
               ))}
             </nav>
           </aside>
         </div>
       )}
-
-      {/* Main Content */}
-      <main className={`min-h-screen transition-all duration-300 pt-16 lg:pt-0 ${
-        sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
-      }`}>
-        {/* Top Bar */}
+      <main className={`min-h-screen transition-all duration-300 pt-16 lg:pt-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
         <div className="hidden lg:flex h-16 items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-lg sticky top-0 z-30">
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Hľadať produkty, objednávky..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <input type="text" placeholder="Hľadať produkty, objednávky..." className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div className="flex items-center gap-4">
             <button className="p-2 hover:bg-slate-800 rounded-lg transition relative">
@@ -211,21 +166,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button className="p-2 hover:bg-slate-800 rounded-lg transition">
               <HelpCircle className="w-5 h-5 text-gray-400" />
             </button>
-            <a 
-              href={`https://${shopName.toLowerCase().replace(/\s+/g, '-')}.eshopbuilder.sk`}
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 transition text-sm"
-            >
+            <a href="#" target="_blank" className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 transition text-sm">
               <Store className="w-4 h-4" />
               Zobraziť obchod
             </a>
           </div>
         </div>
-
-        {/* Page Content */}
-        <div className="p-4 lg:p-6">
-          {children}
-        </div>
+        <div className="p-4 lg:p-6">{children}</div>
       </main>
     </div>
   );
