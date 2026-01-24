@@ -20,9 +20,9 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const passwordRequirements = [
-    { text: 'Minimálne 8 znakov', met: formData.password.length >= 8 },
-    { text: 'Aspoň jedno veľké písmeno', met: /[A-Z]/.test(formData.password) },
-    { text: 'Aspoň jedno číslo', met: /[0-9]/.test(formData.password) },
+    { text: 'Minimálne 8 znakov', met: formData.password.length >= 8 }),
+    { text: 'Aspoň jedno veľké písmeno', met: /[A-Z]/.test(formData.password) }),
+    { text: 'Aspoň jedno číslo', met: /[0-9]/.test(formData.password) }),
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +43,7 @@ export default function RegisterPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
