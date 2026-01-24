@@ -37,7 +37,8 @@ export default function RegisterPage() {
     }
     setIsLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/auth/register`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(apiUrl + '/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -46,12 +47,22 @@ export default function RegisterPage() {
           password: formData.password,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Registrácia zlyhala');
+      
+      if (res.status === 201 || res.status === 200) {
+        toast.success('Účet bol úspešne vytvorený!');
+        router.push('/login');
+        return;
       }
-      toast.success('Účet bol úspešne vytvorený!');
-      router.push('/login');
+      
+      const text = await res.text();
+      let errorMsg = 'Registrácia zlyhala';
+      try {
+        const data = JSON.parse(text);
+        errorMsg = data.error || errorMsg;
+      } catch {
+        errorMsg = text || errorMsg;
+      }
+      throw new Error(errorMsg);
     } catch (error: any) {
       toast.error(error.message || 'Registrácia zlyhala');
     } finally {
@@ -148,7 +159,7 @@ export default function RegisterPage() {
                 </label>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setStep(1)} className="flex-1 py-3 px-4 bg-slate-800 border border-slate-700 rounded-xl font-semibold text-white hover:bg-slate-700">Späť</button>
-                  <button type="submit" disabled={isLoading || !passwordRequirements.every(r => r.met) || formData.password !== formData.confirmPassword} className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <button type="submit" disabled={isLoading || !passwordRequirements.every(r => r.met) || formData.password !== formData.confirmPassword || !formData.acceptTerms} className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
                     {isLoading ? <div className="spinner" /> : 'Vytvoriť účet'}
                   </button>
                 </div>
