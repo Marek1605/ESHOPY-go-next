@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Store, BarChart3, Settings, LogOut, Menu, X, Bell, Search, Shield, Database, FileText, Zap, Globe, CreditCard } from 'lucide-react';
+import { Shield, LayoutDashboard, Users, Store, Database, BarChart3, Settings, LogOut, Menu, X, Bell, Search, Globe } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -18,15 +18,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (parsed.role !== 'admin') router.push('/dashboard');
       setUser(parsed);
     } else {
-      router.push('/admin/login');
+      router.push('/login');
     }
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/admin/login');
+    router.push('/login');
   };
+
+  const menuItems = [
+    { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/admin/users', icon: Users, label: 'Používatelia' },
+    { href: '/admin/shops', icon: Store, label: 'Obchody' },
+    { href: '/admin/feeds', icon: Database, label: 'Feed Import' },
+    { href: '/admin/analytics', icon: BarChart3, label: 'Analytika' },
+    { href: '/admin/settings', icon: Settings, label: 'Nastavenia' },
+  ];
+
+  if (pathname === '/admin/login') return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -43,67 +54,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
         <nav className="p-4 space-y-1">
-          <Link href="/admin" className={`sidebar-item ${pathname === '/admin' ? 'active' : ''}`}>
-            <LayoutDashboard className="w-5 h-5" />
-            {sidebarOpen && <span>Dashboard</span>}
-          </Link>
-          <Link href="/admin/users" className={`sidebar-item ${pathname === '/admin/users' ? 'active' : ''}`}>
-            <Users className="w-5 h-5" />
-            {sidebarOpen && <span>Používatelia</span>}
-          </Link>
-          <Link href="/admin/feeds" className={`sidebar-item ${pathname === '/admin/feeds' ? 'active' : ''}`}>
-            <Database className="w-5 h-5" />
-            {sidebarOpen && <span>Feed Import</span>}
-          </Link>
-          <Link href="/admin/analytics" className={`sidebar-item ${pathname === '/admin/analytics' ? 'active' : ''}`}>
-            <BarChart3 className="w-5 h-5" />
-            {sidebarOpen && <span>Analytika</span>}
-          </Link>
-          <div className="h-px bg-slate-800 my-4" />
-          <Link href="/admin/settings" className={`sidebar-item ${pathname === '/admin/settings' ? 'active' : ''}`}>
-            <Settings className="w-5 h-5" />
-            {sidebarOpen && <span>Nastavenia</span>}
-          </Link>
+          {menuItems.map((item) => (
+            <Link key={item.href} href={item.href} className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}>
+              <item.icon className="w-5 h-5" />
+              {sidebarOpen && <span>{item.label}</span>}
+            </Link>
+          ))}
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
-          <button onClick={handleLogout} className="sidebar-item w-full">
-            <LogOut className="w-5 h-5" />
-            {sidebarOpen && <span>Odhlásiť</span>}
-          </button>
+          {sidebarOpen ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{user?.name || 'Admin'}</p>
+                <p className="text-xs text-gray-400">Super Admin</p>
+              </div>
+              <button onClick={handleLogout} className="p-2 hover:bg-slate-800 rounded-lg"><LogOut className="w-5 h-5 text-gray-400" /></button>
+            </div>
+          ) : (
+            <button onClick={handleLogout} className="w-full p-2 hover:bg-slate-800 rounded-lg flex justify-center"><LogOut className="w-5 h-5 text-gray-400" /></button>
+          )}
         </div>
       </aside>
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 z-50 flex items-center justify-between px-4">
-        <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg">
-          <Menu className="w-6 h-6" />
-        </button>
+        <button onClick={() => setMobileOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg"><Menu className="w-6 h-6" /></button>
         <span className="font-bold">Admin Panel</span>
-        <button className="p-2 hover:bg-slate-800 rounded-lg">
-          <Bell className="w-6 h-6" />
-        </button>
+        <button className="p-2 hover:bg-slate-800 rounded-lg"><Bell className="w-6 h-6" /></button>
       </header>
-      {mobileMenuOpen && (
+      {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="absolute top-0 left-0 h-full w-72 bg-slate-900">
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
               <span className="font-bold text-lg">Admin</span>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-800 rounded-lg">
-                <X className="w-6 h-6" />
-              </button>
+              <button onClick={() => setMobileOpen(false)} className="p-2 hover:bg-slate-800 rounded-lg"><X className="w-6 h-6" /></button>
             </div>
             <nav className="p-4 space-y-1">
-              <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="sidebar-item">
-                <LayoutDashboard className="w-5 h-5" /><span>Dashboard</span>
-              </Link>
-              <Link href="/admin/users" onClick={() => setMobileMenuOpen(false)} className="sidebar-item">
-                <Users className="w-5 h-5" /><span>Používatelia</span>
-              </Link>
-              <Link href="/admin/feeds" onClick={() => setMobileMenuOpen(false)} className="sidebar-item">
-                <Database className="w-5 h-5" /><span>Feed Import</span>
-              </Link>
-              <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)} className="sidebar-item">
-                <Settings className="w-5 h-5" /><span>Nastavenia</span>
-              </Link>
+              {menuItems.map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}>
+                  <item.icon className="w-5 h-5" /><span>{item.label}</span>
+                </Link>
+              ))}
             </nav>
           </aside>
         </div>
@@ -112,13 +105,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="hidden lg:flex h-16 items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50">
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Hľadať..." className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm" />
+            <input type="text" placeholder="Hľadať..." className="input-field pl-10" />
           </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Online
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />Online
             </span>
+            <Link href="/" className="btn-secondary text-sm py-2"><Globe className="w-4 h-4" />Web</Link>
           </div>
         </div>
         <div className="p-6">{children}</div>

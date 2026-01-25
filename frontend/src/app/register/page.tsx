@@ -6,20 +6,13 @@ import { Sparkles, Mail, Lock, User, Store, ArrowRight, Eye, EyeOff, CheckCircle
 import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    shopName: '',
-    acceptTerms: false,
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', shopName: '', acceptTerms: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const router = useRouter();
 
-  const passwordRequirements = [
+  const passwordReqs = [
     { text: 'Minimálne 8 znakov', met: formData.password.length >= 8 },
     { text: 'Aspoň jedno veľké písmeno', met: /[A-Z]/.test(formData.password) },
     { text: 'Aspoň jedno číslo', met: /[0-9]/.test(formData.password) },
@@ -27,44 +20,25 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Heslá sa nezhodujú');
-      return;
-    }
-    if (!formData.acceptTerms) {
-      toast.error('Musíte súhlasiť s obchodnými podmienkami');
-      return;
-    }
+    if (formData.password !== formData.confirmPassword) { toast.error('Heslá sa nezhodujú'); return; }
+    if (!formData.acceptTerms) { toast.error('Musíte súhlasiť s podmienkami'); return; }
     setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const res = await fetch(apiUrl + '/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
       });
-      
       if (res.status === 201 || res.status === 200) {
-        toast.success('Účet bol úspešne vytvorený!');
+        toast.success('Účet vytvorený!');
         router.push('/login');
         return;
       }
-      
-      const text = await res.text();
-      let errorMsg = 'Registrácia zlyhala';
-      try {
-        const data = JSON.parse(text);
-        errorMsg = data.error || errorMsg;
-      } catch {
-        errorMsg = text || errorMsg;
-      }
-      throw new Error(errorMsg);
+      const data = await res.json();
+      throw new Error(data.error || 'Registrácia zlyhala');
     } catch (error: any) {
-      toast.error(error.message || 'Registrácia zlyhala');
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -96,34 +70,34 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {step === 1 ? (
               <>
-                <div className="form-group">
+                <div>
                   <label className="form-label">Meno a priezvisko</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input-field pl-12" placeholder="Ján Novák" required />
                   </div>
                 </div>
-                <div className="form-group">
+                <div>
                   <label className="form-label">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input-field pl-12" placeholder="vas@email.sk" required />
                   </div>
                 </div>
-                <div className="form-group">
+                <div>
                   <label className="form-label">Názov vášho e-shopu</label>
                   <div className="relative">
                     <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="text" value={formData.shopName} onChange={(e) => setFormData({ ...formData, shopName: e.target.value })} className="input-field pl-12" placeholder="Môj super obchod" required />
+                    <input type="text" value={formData.shopName} onChange={(e) => setFormData({ ...formData, shopName: e.target.value })} className="input-field pl-12" placeholder="Môj obchod" required />
                   </div>
                 </div>
-                <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.shopName} className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-white hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2 group">
-                  Pokračovať <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                <button type="button" onClick={() => setStep(2)} disabled={!formData.name || !formData.email || !formData.shopName} className="btn-primary w-full py-3">
+                  Pokračovať <ArrowRight className="w-5 h-5" />
                 </button>
               </>
             ) : (
               <>
-                <div className="form-group">
+                <div>
                   <label className="form-label">Heslo</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -133,33 +107,27 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <div className="mt-3 space-y-2">
-                    {passwordRequirements.map((req, i) => (
+                    {passwordReqs.map((req, i) => (
                       <div key={i} className={`flex items-center gap-2 text-sm ${req.met ? 'text-green-400' : 'text-gray-500'}`}>
-                        <CheckCircle className={`w-4 h-4 ${req.met ? 'text-green-400' : 'text-gray-600'}`} />
-                        {req.text}
+                        <CheckCircle className={`w-4 h-4 ${req.met ? 'text-green-400' : 'text-gray-600'}`} />{req.text}
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="form-group">
+                <div>
                   <label className="form-label">Potvrdiť heslo</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} className="input-field pl-12" placeholder="••••••••" required />
                   </div>
-                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-red-400 text-sm mt-1">Heslá sa nezhodujú</p>
-                  )}
                 </div>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={formData.acceptTerms} onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })} className="w-5 h-5 mt-0.5 rounded border-gray-600 bg-slate-700 text-blue-500" />
-                  <span className="text-sm text-gray-400">
-                    Súhlasím s <Link href="/terms" className="text-blue-400 hover:underline">obchodnými podmienkami</Link> a <Link href="/privacy" className="text-blue-400 hover:underline">ochranou osobných údajov</Link>
-                  </span>
+                  <input type="checkbox" checked={formData.acceptTerms} onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })} className="w-5 h-5 mt-0.5 rounded" />
+                  <span className="text-sm text-gray-400">Súhlasím s <Link href="/terms" className="text-blue-400">obchodnými podmienkami</Link></span>
                 </label>
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => setStep(1)} className="flex-1 py-3 px-4 bg-slate-800 border border-slate-700 rounded-xl font-semibold text-white hover:bg-slate-700">Späť</button>
-                  <button type="submit" disabled={isLoading || !passwordRequirements.every(r => r.met) || formData.password !== formData.confirmPassword || !formData.acceptTerms} className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <button type="button" onClick={() => setStep(1)} className="btn-secondary flex-1 py-3">Späť</button>
+                  <button type="submit" disabled={isLoading || !passwordReqs.every(r => r.met) || formData.password !== formData.confirmPassword || !formData.acceptTerms} className="btn-primary flex-1 py-3">
                     {isLoading ? <div className="spinner" /> : 'Vytvoriť účet'}
                   </button>
                 </div>
