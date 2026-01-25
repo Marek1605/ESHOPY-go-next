@@ -116,7 +116,7 @@ export default function StorePage() {
   const template = TEMPLATES[templateId as keyof typeof TEMPLATES] || TEMPLATES.modern;
   const primaryColor = shop.color;
 
-  const categories = ['Všetky', ...new Set(shop.products.map(p => p.category))];
+  const categories = ['Všetky', ...Array.from(new Set(shop.products.map(p => p.category)))];
   const filteredProducts = selectedCategory === 'Všetky' 
     ? shop.products 
     : shop.products.filter(p => p.category === selectedCategory);
