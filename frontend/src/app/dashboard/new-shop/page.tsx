@@ -11,7 +11,6 @@ export default function NewShopPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Mock - tu by bolo API volanie
     setTimeout(() => {
       setLoading(false);
       alert('Obchod vytvorený!');
