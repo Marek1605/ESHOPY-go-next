@@ -1,745 +1,1000 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect, createContext, useContext, useCallback, ReactNode } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  ShoppingCart, Heart, Search, User, Menu, X, ChevronLeft, ChevronRight, 
-  Star, Truck, Shield, RotateCcw, Headphones, Plus, Minus, Check, 
-  Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Clock,
-  Play, Pause, ChevronDown, ChevronUp, Send, Quote, Sparkles, ArrowRight,
-  CreditCard, Smartphone, AlertCircle, ExternalLink, Eye, Package
+  ShoppingCart, Search, Heart, Menu, X, Star, Sparkles, Package, Truck, Shield, 
+  Phone, Mail, MapPin, Minus, Plus, Trash2, ChevronLeft, ChevronRight,
+  Eye, EyeOff, GripVertical, Settings, Palette, Layout, Save, RotateCcw,
+  Image, Type, Copy, PanelLeftOpen, PanelLeftClose, Headphones, RefreshCw
 } from 'lucide-react';
-import { useCart, useEditor, demoProducts, formatPrice, calculateDiscount, ShopSection, ShopTheme } from '@/lib/store';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// HELPER COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ============================================
+// TYPES & INTERFACES
+// ============================================
+interface Section {
+  id: string;
+  type: 'announcement' | 'header' | 'hero' | 'features' | 'products' | 'newsletter' | 'footer';
+  visible: boolean;
+  order: number;
+  data: Record<string, any>;
+}
 
-function StarRating({ rating, count }: { rating: number; count?: number }) {
+interface ShopConfig {
+  name: string;
+  slug: string;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+}
+
+interface EditorContextType {
+  isEditorMode: boolean;
+  setEditorMode: (v: boolean) => void;
+  isPanelOpen: boolean;
+  setPanelOpen: (v: boolean) => void;
+  activeSection: string | null;
+  setActiveSection: (id: string | null) => void;
+  sections: Section[];
+  updateSection: (id: string, data: Partial<Section>) => void;
+  updateSectionData: (id: string, data: Record<string, any>) => void;
+  toggleVisibility: (id: string) => void;
+  moveSection: (id: string, direction: 'up' | 'down') => void;
+  shopConfig: ShopConfig;
+  updateShopConfig: (config: Partial<ShopConfig>) => void;
+  hasChanges: boolean;
+  saveChanges: () => void;
+  discardChanges: () => void;
+  hoveredSection: string | null;
+  setHoveredSection: (id: string | null) => void;
+}
+
+// ============================================
+// DEFAULT DATA
+// ============================================
+const defaultSections: Section[] = [
+  {
+    id: 'announcement',
+    type: 'announcement',
+    visible: true,
+    order: 0,
+    data: {
+      text: '🎁 30 dní na vrátenie bez udania dôvodu',
+      backgroundColor: '#3b82f6'
+    }
+  },
+  {
+    id: 'header',
+    type: 'header',
+    visible: true,
+    order: 1,
+    data: {
+      menuItems: ['Domov', 'Produkty', 'Akcie', 'Novinky', 'Kontakt']
+    }
+  },
+  {
+    id: 'hero',
+    type: 'hero',
+    visible: true,
+    order: 2,
+    data: {
+      slides: [
+        {
+          id: '1',
+          title: 'Nová kolekcia 2024',
+          subtitle: 'Objavte najnovšie produkty pre tento rok',
+          buttonText: 'Nakupovať',
+          secondaryButtonText: 'Viac info',
+          backgroundColor: '#3b82f6'
+        },
+        {
+          id: '2',
+          title: 'Doprava zadarmo',
+          subtitle: 'Pri každej objednávke nad €50',
+          buttonText: 'Začať nakupovať',
+          backgroundColor: '#059669'
+        }
+      ],
+      activeSlide: 0
+    }
+  },
+  {
+    id: 'features',
+    type: 'features',
+    visible: true,
+    order: 3,
+    data: {
+      items: [
+        { icon: 'truck', title: 'Doprava zadarmo', subtitle: 'Objednávky nad €50' },
+        { icon: 'shield', title: 'Bezpečný nákup', subtitle: '100% zabezpečené' },
+        { icon: 'refresh', title: 'Vrátenie tovaru', subtitle: '30 dní bez otázok' },
+        { icon: 'headphones', title: 'Podpora 24/7', subtitle: 'Vždy tu pre vás' }
+      ]
+    }
+  },
+  {
+    id: 'products',
+    type: 'products',
+    visible: true,
+    order: 4,
+    data: {
+      title: 'Najpredávanejšie produkty',
+      products: [
+        { id: '1', name: 'Bezdrôtové slúchadlá Pro', price: 89.99, oldPrice: 119.99, rating: 4.8, reviews: 124 },
+        { id: '2', name: 'Smart Watch Ultra', price: 199.99, rating: 4.9, reviews: 89 },
+        { id: '3', name: 'Prémiový obal na telefón', price: 29.99, oldPrice: 39.99, rating: 4.5, reviews: 256 },
+        { id: '4', name: 'USB-C kábel 2m', price: 14.99, rating: 4.7, reviews: 512 },
+      ]
+    }
+  },
+  {
+    id: 'newsletter',
+    type: 'newsletter',
+    visible: true,
+    order: 5,
+    data: {
+      title: 'Prihláste sa na odber noviniek',
+      subtitle: 'Získajte 10% zľavu na prvý nákup',
+      buttonText: 'Prihlásiť sa'
+    }
+  },
+  {
+    id: 'footer',
+    type: 'footer',
+    visible: true,
+    order: 6,
+    data: {
+      copyright: '© 2024 Demo Shop. Powered by EshopBuilder'
+    }
+  }
+];
+
+const defaultShopConfig: ShopConfig = {
+  name: 'Demo Shop',
+  slug: 'demo',
+  primaryColor: '#3b82f6',
+  secondaryColor: '#1e40af',
+  fontFamily: 'Inter'
+};
+
+// ============================================
+// EDITOR CONTEXT
+// ============================================
+const EditorContext = createContext<EditorContextType | null>(null);
+
+function useEditor() {
+  const ctx = useContext(EditorContext);
+  if (!ctx) throw new Error('useEditor must be within EditorProvider');
+  return ctx;
+}
+
+// ============================================
+// SECTION ICONS & LABELS
+// ============================================
+const SECTION_META: Record<string, { icon: string; label: string }> = {
+  announcement: { icon: '📢', label: 'Oznamovacia lišta' },
+  header: { icon: '🏠', label: 'Hlavička' },
+  hero: { icon: '🎯', label: 'Hero Slider' },
+  features: { icon: '✨', label: 'Dôveryhodné prvky' },
+  products: { icon: '📦', label: 'Produkty' },
+  newsletter: { icon: '✉️', label: 'Newsletter' },
+  footer: { icon: '📋', label: 'Päta' }
+};
+
+// ============================================
+// EDITOR PANEL COMPONENT
+// ============================================
+function EditorPanel() {
+  const {
+    isPanelOpen, setPanelOpen, sections, activeSection, setActiveSection,
+    toggleVisibility, moveSection, shopConfig, updateShopConfig,
+    hasChanges, saveChanges, discardChanges, updateSectionData
+  } = useEditor();
+
+  const [activeTab, setActiveTab] = useState<'sections' | 'appearance' | 'settings'>('sections');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
+  const selectedSection = activeSection ? sections.find(s => s.id === activeSection) : null;
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await new Promise(r => setTimeout(r, 500));
+    saveChanges();
+    setIsSaving(false);
+  };
+
+  // Section Detail Editor
+  if (selectedSection) {
+    return (
+      <div className={`fixed top-0 left-0 bottom-0 w-[380px] bg-gray-900 z-50 shadow-2xl transform transition-transform duration-300 ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-full flex flex-col">
+          {/* Section Header */}
+          <div className="p-4 border-b border-gray-800 flex items-center gap-3">
+            <button onClick={() => setActiveSection(null)} className="p-2 hover:bg-gray-800 rounded-lg">
+              <ChevronLeft className="w-5 h-5 text-gray-400" />
+            </button>
+            <span className="text-xl">{SECTION_META[selectedSection.type]?.icon}</span>
+            <span className="font-semibold text-white">{SECTION_META[selectedSection.type]?.label}</span>
+          </div>
+
+          {/* Section Editor Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {selectedSection.type === 'announcement' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Text oznámenia</label>
+                  <input
+                    type="text"
+                    value={selectedSection.data.text}
+                    onChange={(e) => updateSectionData(selectedSection.id, { text: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Farba pozadia</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={selectedSection.data.backgroundColor}
+                      onChange={(e) => updateSectionData(selectedSection.id, { backgroundColor: e.target.value })}
+                      className="w-12 h-10 rounded cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={selectedSection.data.backgroundColor}
+                      onChange={(e) => updateSectionData(selectedSection.id, { backgroundColor: e.target.value })}
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedSection.type === 'hero' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Slidy ({selectedSection.data.slides?.length || 0})</span>
+                  <button className="text-xs text-blue-400 hover:text-blue-300">+ Pridať</button>
+                </div>
+                {selectedSection.data.slides?.map((slide: any, idx: number) => (
+                  <div key={slide.id || idx} className="p-3 bg-gray-800/60 rounded-lg space-y-3 border border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Slide {idx + 1}</span>
+                      <button className="text-gray-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                    <input
+                      type="text"
+                      value={slide.title}
+                      onChange={(e) => {
+                        const newSlides = [...selectedSection.data.slides];
+                        newSlides[idx] = { ...slide, title: e.target.value };
+                        updateSectionData(selectedSection.id, { slides: newSlides });
+                      }}
+                      placeholder="Nadpis"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={slide.subtitle}
+                      onChange={(e) => {
+                        const newSlides = [...selectedSection.data.slides];
+                        newSlides[idx] = { ...slide, subtitle: e.target.value };
+                        updateSectionData(selectedSection.id, { slides: newSlides });
+                      }}
+                      placeholder="Podnadpis"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={slide.buttonText}
+                        onChange={(e) => {
+                          const newSlides = [...selectedSection.data.slides];
+                          newSlides[idx] = { ...slide, buttonText: e.target.value };
+                          updateSectionData(selectedSection.id, { slides: newSlides });
+                        }}
+                        placeholder="Text tlačidla"
+                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                      />
+                      <input
+                        type="color"
+                        value={slide.backgroundColor}
+                        onChange={(e) => {
+                          const newSlides = [...selectedSection.data.slides];
+                          newSlides[idx] = { ...slide, backgroundColor: e.target.value };
+                          updateSectionData(selectedSection.id, { slides: newSlides });
+                        }}
+                        className="w-10 h-9 rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedSection.type === 'features' && (
+              <div className="space-y-4">
+                {selectedSection.data.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="p-3 bg-gray-800/60 rounded-lg space-y-2 border border-gray-700">
+                    <input
+                      type="text"
+                      value={item.title}
+                      onChange={(e) => {
+                        const newItems = [...selectedSection.data.items];
+                        newItems[idx] = { ...item, title: e.target.value };
+                        updateSectionData(selectedSection.id, { items: newItems });
+                      }}
+                      placeholder="Nadpis"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={item.subtitle}
+                      onChange={(e) => {
+                        const newItems = [...selectedSection.data.items];
+                        newItems[idx] = { ...item, subtitle: e.target.value };
+                        updateSectionData(selectedSection.id, { items: newItems });
+                      }}
+                      placeholder="Popis"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedSection.type === 'newsletter' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Nadpis</label>
+                  <input
+                    type="text"
+                    value={selectedSection.data.title}
+                    onChange={(e) => updateSectionData(selectedSection.id, { title: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Podnadpis</label>
+                  <input
+                    type="text"
+                    value={selectedSection.data.subtitle}
+                    onChange={(e) => updateSectionData(selectedSection.id, { subtitle: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Text tlačidla</label>
+                  <input
+                    type="text"
+                    value={selectedSection.data.buttonText}
+                    onChange={(e) => updateSectionData(selectedSection.id, { buttonText: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {selectedSection.type === 'products' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Nadpis sekcie</label>
+                  <input
+                    type="text"
+                    value={selectedSection.data.title}
+                    onChange={(e) => updateSectionData(selectedSection.id, { title: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  />
+                </div>
+                <div className="text-center py-6 text-gray-500">
+                  <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Produkty sa načítajú automaticky</p>
+                  <p className="text-xs mt-1">z databázy vášho obchodu</p>
+                </div>
+              </div>
+            )}
+
+            {(selectedSection.type === 'header' || selectedSection.type === 'footer') && (
+              <div className="text-center py-8 text-gray-500">
+                <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Rozšírené nastavenia pre túto sekciu</p>
+                <p className="text-xs mt-1">Prídu v ďalšej verzii</p>
+              </div>
+            )}
+          </div>
+
+          {/* Section Footer */}
+          <div className="p-4 border-t border-gray-800 flex gap-2">
+            <button className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-600 flex items-center justify-center gap-2">
+              <Copy className="w-4 h-4" />
+              Duplikovať
+            </button>
+            <button className="flex-1 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 flex items-center justify-center gap-2">
+              <Trash2 className="w-4 h-4" />
+              Odstrániť
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Panel
   return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`w-4 h-4 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-        />
-      ))}
-      {count !== undefined && <span className="text-sm text-gray-500 ml-1">({count})</span>}
+    <div className={`fixed top-0 left-0 bottom-0 w-[380px] bg-gray-900 z-50 shadow-2xl transform transition-transform duration-300 ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-white text-lg">Shop Builder</span>
+          </div>
+          <button onClick={() => setPanelOpen(false)} className="p-2 hover:bg-gray-800 rounded-lg">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-800">
+          {[
+            { id: 'sections', icon: Layout, label: 'Sekcie' },
+            { id: 'appearance', icon: Palette, label: 'Vzhľad' },
+            { id: 'settings', icon: Settings, label: 'Nastavenia' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === 'sections' && (
+            <div className="p-4 space-y-2">
+              {sortedSections.map((section, index) => (
+                <div
+                  key={section.id}
+                  className="rounded-xl border border-gray-800 bg-gray-800/30 hover:border-gray-700 transition-all"
+                >
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="cursor-grab text-gray-600 hover:text-gray-400">
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+                    <span className="text-lg">{SECTION_META[section.type]?.icon}</span>
+                    <div className="flex-1">
+                      <span className="text-white text-sm font-medium">{SECTION_META[section.type]?.label}</span>
+                      {section.type === 'hero' && (
+                        <span className="text-gray-500 text-xs ml-2">{section.data.slides?.length} položiek</span>
+                      )}
+                      {section.type === 'features' && (
+                        <span className="text-gray-500 text-xs ml-2">{section.data.items?.length} položiek</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => toggleVisibility(section.id)}
+                      className={`p-1.5 rounded-lg transition-colors ${section.visible ? 'text-blue-400 hover:bg-blue-400/10' : 'text-gray-600 hover:bg-gray-700'}`}
+                    >
+                      {section.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => setActiveSection(section.id)}
+                      className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'appearance' && (
+            <div className="p-4 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">Primárna farba</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={shopConfig.primaryColor}
+                    onChange={(e) => updateShopConfig({ primaryColor: e.target.value })}
+                    className="w-12 h-10 rounded cursor-pointer border-0"
+                  />
+                  <input
+                    type="text"
+                    value={shopConfig.primaryColor}
+                    onChange={(e) => updateShopConfig({ primaryColor: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">Farebné schémy</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { color: '#3B82F6', name: 'Modrá' },
+                    { color: '#10B981', name: 'Zelená' },
+                    { color: '#8B5CF6', name: 'Fialová' },
+                    { color: '#EF4444', name: 'Červená' },
+                    { color: '#F59E0B', name: 'Oranžová' },
+                    { color: '#EC4899', name: 'Ružová' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.color}
+                      onClick={() => updateShopConfig({ primaryColor: preset.color })}
+                      className={`p-3 rounded-lg border-2 transition-all ${shopConfig.primaryColor === preset.color ? 'border-white' : 'border-transparent'}`}
+                      style={{ backgroundColor: preset.color }}
+                    >
+                      <span className="text-white text-xs font-medium drop-shadow">{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">Písmo</label>
+                <select
+                  value={shopConfig.fontFamily}
+                  onChange={(e) => updateShopConfig({ fontFamily: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                >
+                  <option value="Inter">Inter (Moderný)</option>
+                  <option value="Poppins">Poppins (Čistý)</option>
+                  <option value="Playfair Display">Playfair (Elegantný)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="p-4 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Názov obchodu</label>
+                <input
+                  type="text"
+                  value={shopConfig.name}
+                  onChange={(e) => updateShopConfig({ name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer - Save Bar */}
+        {hasChanges && (
+          <div className="p-4 border-t border-gray-800 bg-gray-900/95">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+              <span className="text-sm text-yellow-400">Neuložené zmeny</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={discardChanges}
+                className="flex-1 px-4 py-2.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-600 flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Zrušiť
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Ukladám...' : 'Uložiť'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: ANNOUNCEMENT BAR
-// ═══════════════════════════════════════════════════════════════════════════════
+// ============================================
+// EDITABLE SECTION WRAPPER
+// ============================================
+function EditableSection({ id, children }: { id: string; children: ReactNode }) {
+  const { isEditorMode, setActiveSection, setPanelOpen, hoveredSection, setHoveredSection } = useEditor();
+  
+  if (!isEditorMode) return <>{children}</>;
 
-function AnnouncementBarSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
-  const messages = section.settings.messages || [];
-
-  useEffect(() => {
-    if (!section.settings.autoRotate || messages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((i) => (i + 1) % messages.length);
-    }, (section.settings.rotateInterval || 4) * 1000);
-    return () => clearInterval(interval);
-  }, [messages.length, section.settings.autoRotate, section.settings.rotateInterval]);
-
-  if (!isVisible || messages.length === 0) return null;
+  const isHovered = hoveredSection === id;
 
   return (
     <div
-      className="relative text-center py-2 px-4"
-      style={{
-        backgroundColor: section.settings.backgroundColor || '#0f172a',
-        color: section.settings.textColor || '#ffffff',
-        height: section.settings.height || 40,
-      }}
+      className="relative group"
+      onMouseEnter={() => setHoveredSection(id)}
+      onMouseLeave={() => setHoveredSection(null)}
     >
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm font-medium animate-fade-in">
-          {messages[currentIndex]?.link ? (
-            <a href={messages[currentIndex].link} className="hover:underline">
-              {messages[currentIndex].text}
-            </a>
-          ) : (
-            messages[currentIndex]?.text
-          )}
-        </p>
-      </div>
-      {section.settings.showCloseButton && (
+      {children}
+      
+      {/* Hover Overlay */}
+      <div className={`absolute inset-0 pointer-events-none transition-all duration-200 ${isHovered ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/5' : ''}`} />
+      
+      {/* Edit Button */}
+      {isHovered && (
         <button
-          onClick={() => setIsVisible(false)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded"
+          onClick={() => { setActiveSection(id); setPanelOpen(true); }}
+          className="absolute top-2 right-2 px-3 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-lg shadow-lg hover:bg-blue-600 transition-colors pointer-events-auto flex items-center gap-2 z-10"
         >
-          <X className="w-4 h-4" />
+          <Settings className="w-4 h-4" />
+          Upraviť
         </button>
       )}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: HEADER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function HeaderSection({ section, theme, cartCount, onCartClick }: { 
-  section: ShopSection; theme: ShopTheme; cartCount: number; onCartClick: () => void;
-}) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-
+// ============================================
+// SECTION COMPONENTS
+// ============================================
+function AnnouncementSection({ data }: { data: any }) {
   return (
-    <header
-      className={`${section.settings.sticky ? 'sticky top-0 z-50' : ''} ${section.settings.borderBottom ? 'border-b' : ''}`}
-      style={{
-        backgroundColor: section.settings.backgroundColor || '#ffffff',
-        color: section.settings.textColor || '#0f172a',
-        borderColor: theme.borderColor,
-        height: section.settings.height || 72,
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primaryColor }}>
+    <div className="text-white text-center py-2 px-4 text-sm" style={{ backgroundColor: data.backgroundColor }}>
+      {data.text}
+    </div>
+  );
+}
+
+function HeaderSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
+  return (
+    <header className="bg-white border-b sticky top-0 z-30">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: shopConfig.primaryColor }}>
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <span className="font-bold text-xl hidden sm:block">{section.settings.logoText || 'Shop'}</span>
-        </Link>
-
-        <nav className="hidden lg:flex items-center gap-1">
-          {(section.settings.menuItems || []).map((item: any) => (
-            <div key={item.id} className="relative group">
-              <Link href={item.link} className={`px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 flex items-center gap-1 ${item.highlight ? 'text-red-500' : ''}`}>
-                {item.label}
-                {item.badge && <span className="px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded">{item.badge}</span>}
-                {item.submenu?.length > 0 && <ChevronDown className="w-4 h-4" />}
-              </Link>
-              {item.submenu?.length > 0 && (
-                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <div className="bg-white rounded-xl shadow-xl border p-2 min-w-[200px]">
-                    {item.submenu.map((sub: any) => (
-                      <Link key={sub.id} href={sub.link} className="block px-4 py-2 rounded-lg text-sm hover:bg-gray-100">{sub.label}</Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          <span className="font-bold text-xl text-gray-900">{shopConfig.name}</span>
+        </div>
+        <nav className="hidden md:flex items-center gap-6">
+          {data.menuItems?.map((item: string) => (
+            <button key={item} className="text-gray-600 hover:text-gray-900 transition-colors">{item}</button>
           ))}
         </nav>
-
-        <div className="flex items-center gap-2">
-          {section.settings.showSearch && (
-            <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 hover:bg-gray-100 rounded-lg"><Search className="w-5 h-5" /></button>
-          )}
-          {section.settings.showWishlist && (
-            <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block"><Heart className="w-5 h-5" /></button>
-          )}
-          {section.settings.showAccount && (
-            <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block"><User className="w-5 h-5" /></button>
-          )}
-          {section.settings.showCart && (
-            <button onClick={onCartClick} className="p-2 hover:bg-gray-100 rounded-lg relative">
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white" style={{ backgroundColor: theme.primaryColor }}>{cartCount}</span>
-              )}
-            </button>
-          )}
-          <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"><Menu className="w-5 h-5" /></button>
+        <div className="flex items-center gap-4">
+          <button className="p-2 hover:bg-gray-100 rounded-lg"><Search className="w-5 h-5 text-gray-600" /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-lg"><Heart className="w-5 h-5 text-gray-600" /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-lg relative">
+            <ShoppingCart className="w-5 h-5 text-gray-600" />
+            <span className="absolute -top-1 -right-1 w-5 h-5 text-xs text-white rounded-full flex items-center justify-center" style={{ backgroundColor: shopConfig.primaryColor }}>0</span>
+          </button>
         </div>
       </div>
-
-      {searchOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b shadow-lg p-4">
-          <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder={section.settings.searchPlaceholder || 'Hľadať produkty...'} className="w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2" autoFocus />
-            <button onClick={() => setSearchOpen(false)} className="absolute right-4 top-1/2 -translate-y-1/2"><X className="w-5 h-5 text-gray-400" /></button>
-          </div>
-        </div>
-      )}
-
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="absolute top-0 right-0 bottom-0 w-80 bg-white shadow-xl">
-            <div className="p-4 border-b flex items-center justify-between">
-              <span className="font-bold">Menu</span>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <nav className="p-4 space-y-1">
-              {(section.settings.menuItems || []).map((item: any) => (
-                <Link key={item.id} href={item.link} className="block px-4 py-3 rounded-lg hover:bg-gray-100 font-medium" onClick={() => setMobileMenuOpen(false)}>{item.label}</Link>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: HERO SLIDER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function HeroSliderSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const slides = section.blocks || [];
+function HeroSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const slides = data.slides || [];
 
   useEffect(() => {
-    if (!section.settings.autoplay || isPaused || slides.length <= 1) return;
+    if (slides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentSlide((i) => (i + 1) % slides.length);
-    }, section.settings.autoplaySpeed || 5000);
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [slides.length, section.settings.autoplay, section.settings.autoplaySpeed, isPaused]);
+  }, [slides.length]);
 
   if (slides.length === 0) return null;
+  const slide = slides[activeSlide];
 
   return (
-    <div className="relative overflow-hidden" style={{ height: section.settings.height || 600 }} onMouseEnter={() => section.settings.pauseOnHover && setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
-      {slides.map((s, index) => (
-        <div key={s.id} className={`absolute inset-0 transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundColor: s.settings.backgroundColor || theme.primaryColor }}>
-          {section.settings.overlay && <div className="absolute inset-0" style={{ backgroundColor: section.settings.overlayColor || '#000', opacity: (section.settings.overlayOpacity || 30) / 100 }} />}
-          <div className={`relative h-full flex items-center justify-center px-4`}>
-            <div className="text-center max-w-4xl" style={{ color: s.settings.textColor || '#fff' }}>
-              <h1 className="font-bold mb-4 leading-tight" style={{ fontSize: s.settings.titleSize || 56 }}>{s.settings.title}</h1>
-              {s.settings.subtitle && <p className="mb-8 opacity-90" style={{ fontSize: s.settings.subtitleSize || 20 }}>{s.settings.subtitle}</p>}
-              <div className="flex gap-4 justify-center flex-wrap">
-                {s.settings.buttonText && (
-                  <Link href={s.settings.buttonLink || '/'} className="px-8 py-4 rounded-xl font-semibold transition-transform hover:scale-105" style={{ backgroundColor: s.settings.buttonStyle === 'white' ? '#fff' : theme.primaryColor, color: s.settings.buttonStyle === 'white' ? theme.primaryColor : '#fff' }}>
-                    {s.settings.buttonText}
-                  </Link>
-                )}
-                {s.settings.secondaryButtonText && (
-                  <Link href={s.settings.secondaryButtonLink || '/'} className="px-8 py-4 rounded-xl font-semibold border-2 border-white/50 hover:bg-white/10">{s.settings.secondaryButtonText}</Link>
-                )}
-              </div>
-            </div>
-          </div>
+    <section className="relative text-white py-20 px-4 transition-colors duration-500" style={{ backgroundColor: slide.backgroundColor || shopConfig.primaryColor }}>
+      <div className="max-w-4xl mx-auto text-center">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">{slide.title}</h1>
+        <p className="text-xl opacity-90 mb-8">{slide.subtitle}</p>
+        <div className="flex justify-center gap-4">
+          <button className="px-8 py-3 bg-white rounded-lg font-semibold hover:bg-gray-100 transition-colors" style={{ color: slide.backgroundColor || shopConfig.primaryColor }}>
+            {slide.buttonText}
+          </button>
+          {slide.secondaryButtonText && (
+            <button className="px-8 py-3 border-2 border-white rounded-lg font-semibold hover:bg-white/10 transition-colors">
+              {slide.secondaryButtonText}
+            </button>
+          )}
         </div>
-      ))}
+      </div>
 
-      {section.settings.showArrows && slides.length > 1 && (
+      {/* Slide Navigation */}
+      {slides.length > 1 && (
         <>
-          <button onClick={() => setCurrentSlide((i) => (i - 1 + slides.length) % slides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center">
-            <ChevronLeft className="w-6 h-6 text-white" />
+          <button
+            onClick={() => setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+          >
+            <ChevronLeft className="w-6 h-6" />
           </button>
-          <button onClick={() => setCurrentSlide((i) => (i + 1) % slides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center">
-            <ChevronRight className="w-6 h-6 text-white" />
+          <button
+            onClick={() => setActiveSlide((prev) => (prev + 1) % slides.length)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+          >
+            <ChevronRight className="w-6 h-6" />
           </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {slides.map((_: any, idx: number) => (
+              <button
+                key={idx}
+                onClick={() => setActiveSlide(idx)}
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${idx === activeSlide ? 'bg-white' : 'bg-white/40'}`}
+              />
+            ))}
+          </div>
         </>
       )}
-
-      {section.settings.showDots && slides.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-          {slides.map((_, index) => (
-            <button key={index} onClick={() => setCurrentSlide(index)} className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/70'}`} />
-          ))}
-        </div>
-      )}
-    </div>
+    </section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: TRUST BADGES
-// ═══════════════════════════════════════════════════════════════════════════════
+function FeaturesSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
+  const iconMap: Record<string, any> = {
+    truck: Truck,
+    shield: Shield,
+    refresh: RefreshCw,
+    headphones: Headphones
+  };
 
-function TrustBadgesSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const badges = section.blocks || [];
   return (
-    <div className={`${section.settings.showBorder ? 'border-y' : ''}`} style={{ backgroundColor: section.settings.backgroundColor || theme.surfaceColor, borderColor: theme.borderColor, padding: section.settings.padding || 24 }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap">
-          {badges.map((badge) => (
-            <div key={badge.id} className="flex items-center gap-3 text-center md:text-left">
-              <span style={{ fontSize: section.settings.iconSize || 32 }}>{badge.settings.icon}</span>
-              <div>
-                <p className="font-semibold" style={{ color: theme.textColor }}>{badge.settings.title}</p>
-                <p className="text-sm" style={{ color: theme.textMutedColor }}>{badge.settings.description}</p>
+    <section className="py-8 bg-gray-50 border-b">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {data.items?.map((item: any, idx: number) => {
+            const Icon = iconMap[item.icon] || Package;
+            return (
+              <div key={idx} className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${shopConfig.primaryColor}15` }}>
+                  <Icon className="w-5 h-5" style={{ color: shopConfig.primaryColor }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
+                  <p className="text-gray-500 text-xs">{item.subtitle}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: CATEGORIES GRID
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function CategoriesGridSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const categories = section.blocks || [];
+function ProductsSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
   return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
+    <section className="py-12">
       <div className="max-w-7xl mx-auto px-4">
-        {(section.settings.title || section.settings.subtitle) && (
-          <div className={`mb-10 text-${section.settings.titleAlign || 'center'}`}>
-            {section.settings.title && <h2 className="text-3xl font-bold mb-2" style={{ color: theme.headingColor }}>{section.settings.title}</h2>}
-            {section.settings.subtitle && <p className="text-lg" style={{ color: theme.textMutedColor }}>{section.settings.subtitle}</p>}
-          </div>
-        )}
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${section.settings.columns || 6}, minmax(0, 1fr))`, gap: section.settings.gap || 16 }}>
-          {categories.map((cat) => (
-            <Link key={cat.id} href={cat.settings.link || '/'} className="group relative overflow-hidden transition-transform hover:scale-105" style={{ borderRadius: section.settings.borderRadius || 12 }}>
-              <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: cat.settings.color || theme.primaryColor, height: section.settings.imageHeight || 180 }}>
-                {section.settings.showOverlay && <div className="absolute inset-0 bg-black transition-opacity group-hover:opacity-60" style={{ opacity: (section.settings.overlayOpacity || 40) / 100 }} />}
-                <span className="text-5xl relative z-10">{cat.settings.icon}</span>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                <p className="font-semibold text-white">{cat.settings.name}</p>
-                {section.settings.showCount && cat.settings.count && <p className="text-sm text-white/70">{cat.settings.count} produktov</p>}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: PRODUCTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ProductsSection({ section, theme, onAddToCart }: { section: ShopSection; theme: ShopTheme; onAddToCart: (product: any) => void }) {
-  const products = demoProducts.slice(0, section.settings.limit || 8);
-  return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
-      <div className="max-w-7xl mx-auto px-4">
-        {(section.settings.title || section.settings.subtitle) && (
-          <div className={`mb-10 text-${section.settings.titleAlign || 'center'}`}>
-            {section.settings.title && <h2 className="text-3xl font-bold mb-2" style={{ color: theme.headingColor }}>{section.settings.title}</h2>}
-            {section.settings.subtitle && <p className="text-lg" style={{ color: theme.textMutedColor }}>{section.settings.subtitle}</p>}
-          </div>
-        )}
-        <div className="grid" style={{ gridTemplateColumns: `repeat(${section.settings.columns || 4}, minmax(0, 1fr))`, gap: section.settings.gap || 24 }}>
-          {products.map((product) => (
-            <div key={product.id} className="group bg-white rounded-2xl overflow-hidden transition-all hover:shadow-xl" style={{ borderRadius: theme.borderRadiusLarge, boxShadow: theme.cardShadow ? theme.shadowMedium : undefined, border: theme.cardBorder ? `1px solid ${theme.borderColor}` : undefined }}>
-              <div className="relative aspect-square bg-gray-100 overflow-hidden">
-                {product.badge && section.settings.showBadges && (
-                  <span className="absolute top-3 left-3 px-2 py-1 rounded-lg text-xs font-bold text-white z-10" style={{ backgroundColor: product.badge === 'sale' ? '#ef4444' : product.badge === 'new' ? '#22c55e' : product.badge === 'bestseller' ? '#f59e0b' : theme.primaryColor }}>
-                    {product.badge === 'sale' ? 'ZĽAVA' : product.badge === 'new' ? 'NOVINKA' : product.badge === 'bestseller' ? 'TOP' : product.badge.toUpperCase()}
-                  </span>
-                )}
-                {product.comparePrice && section.settings.showDiscount && (
-                  <span className="absolute top-3 right-3 px-2 py-1 rounded-lg text-xs font-bold bg-red-500 text-white z-10">-{calculateDiscount(product.price, product.comparePrice)}%</span>
-                )}
-                <div className="w-full h-full flex items-center justify-center text-gray-300"><ShoppingCart className="w-16 h-16" /></div>
-                {section.settings.showQuickAdd && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onAddToCart(product)} className="px-6 py-3 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100">Do košíka</button>
-                  </div>
-                )}
+        <h2 className="text-2xl font-bold text-gray-900 mb-8">{data.title}</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {data.products?.map((product: any) => (
+            <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+              <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <Package className="w-16 h-16 text-gray-400" />
               </div>
               <div className="p-4">
-                <p className="text-xs text-gray-500 mb-1">{product.category}</p>
-                <h3 className="font-semibold mb-2 line-clamp-2" style={{ color: theme.textColor }}>{product.name}</h3>
-                {section.settings.showRating && <div className="mb-2"><StarRating rating={product.rating} count={section.settings.showReviewCount ? product.reviewCount : undefined} /></div>}
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold" style={{ color: theme.primaryColor }}>{formatPrice(product.price)}</span>
-                  {product.comparePrice && <span className="text-sm text-gray-400 line-through">{formatPrice(product.comparePrice)}</span>}
+                <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
+                <div className="flex items-center gap-1 mb-2">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm text-gray-600">{product.rating}</span>
+                  <span className="text-sm text-gray-400">({product.reviews})</span>
                 </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl font-bold" style={{ color: shopConfig.primaryColor }}>€{product.price}</span>
+                  {product.oldPrice && <span className="text-sm text-gray-400 line-through">€{product.oldPrice}</span>}
+                </div>
+                <button className="w-full py-2 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: shopConfig.primaryColor }}>
+                  Do košíka
+                </button>
               </div>
             </div>
           ))}
         </div>
-        {section.settings.viewAllLink && (
-          <div className="text-center mt-10">
-            <Link href={section.settings.viewAllLink} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold" style={{ backgroundColor: theme.primaryColor, color: '#fff' }}>
-              {section.settings.viewAllText || 'Zobraziť všetko'} <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        )}
       </div>
-    </div>
+    </section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: PROMO BANNER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function PromoBannerSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
+function NewsletterSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
   return (
-    <div className={`relative overflow-hidden text-${section.settings.textAlign || 'center'}`} style={{ background: section.settings.backgroundGradient || section.settings.backgroundColor || theme.primaryColor, color: section.settings.textColor || '#fff', paddingTop: section.settings.padding?.top || 60, paddingBottom: section.settings.padding?.bottom || 60 }}>
-      {section.settings.showPattern && <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '20px 20px' }} />}
-      <div className="relative max-w-4xl mx-auto px-4">
-        {section.settings.title && <h2 className={`font-bold mb-4 ${section.settings.size === 'large' ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'}`}>{section.settings.title}</h2>}
-        {section.settings.subtitle && <p className={`mb-8 opacity-90 ${section.settings.size === 'large' ? 'text-xl' : 'text-lg'}`}>{section.settings.subtitle}</p>}
-        {section.settings.buttonText && (
-          <Link href={section.settings.buttonLink || '/'} className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-transform hover:scale-105 ${section.settings.buttonStyle === 'white' ? 'bg-white' : 'bg-black/20 hover:bg-black/30'}`} style={{ color: section.settings.buttonStyle === 'white' ? (section.settings.backgroundColor || theme.primaryColor) : '#fff' }}>
-            {section.settings.buttonText} <ArrowRight className="w-5 h-5" />
-          </Link>
-        )}
+    <section className="py-12 bg-gray-900 text-white">
+      <div className="max-w-2xl mx-auto px-4 text-center">
+        <h2 className="text-2xl font-bold mb-2">{data.title}</h2>
+        <p className="text-gray-400 mb-6">{data.subtitle}</p>
+        <div className="flex gap-2 max-w-md mx-auto">
+          <input type="email" placeholder="Váš email" className="flex-1 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white" />
+          <button className="px-6 py-3 rounded-lg font-semibold text-white" style={{ backgroundColor: shopConfig.primaryColor }}>
+            {data.buttonText}
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: TESTIMONIALS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TestimonialsSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const testimonials = section.blocks || [];
-  const [current, setCurrent] = useState(0);
-
-  useEffect(() => {
-    if (section.settings.layout !== 'carousel' || !section.settings.autoplay) return;
-    const interval = setInterval(() => setCurrent((i) => (i + 1) % testimonials.length), section.settings.autoplaySpeed || 5000);
-    return () => clearInterval(interval);
-  }, [testimonials.length, section.settings.layout, section.settings.autoplay]);
-
+function FooterSection({ data, shopConfig }: { data: any; shopConfig: ShopConfig }) {
   return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || theme.surfaceColor, paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
+    <footer className="bg-gray-900 text-white py-8">
       <div className="max-w-7xl mx-auto px-4">
-        {section.settings.title && (
-          <div className={`mb-10 text-${section.settings.titleAlign || 'center'}`}>
-            <h2 className="text-3xl font-bold mb-2" style={{ color: theme.headingColor }}>{section.settings.title}</h2>
-            {section.settings.subtitle && <p className="text-lg" style={{ color: theme.textMutedColor }}>{section.settings.subtitle}</p>}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: shopConfig.primaryColor }}>
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-bold text-xl">{shopConfig.name}</span>
           </div>
-        )}
-        <div className={`grid gap-6 ${section.settings.layout === 'carousel' ? '' : 'md:grid-cols-3'}`}>
-          {(section.settings.layout === 'carousel' ? [testimonials[current]] : testimonials).map((t) => (
-            <div key={t.id} className="p-6 rounded-2xl" style={{ backgroundColor: section.settings.cardBackgroundColor || '#fff', borderRadius: theme.borderRadiusLarge }}>
-              <Quote className="w-8 h-8 mb-4" style={{ color: theme.primaryColor }} />
-              <p className="text-lg mb-4" style={{ color: theme.textColor }}>"{t.settings.text}"</p>
-              {section.settings.showRating && <div className="mb-4"><StarRating rating={t.settings.rating} /></div>}
-              <div className="flex items-center gap-3">
-                {section.settings.showAvatar && <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: theme.primaryColor }}>{t.settings.name?.charAt(0)}</div>}
-                <div>
-                  <p className="font-semibold" style={{ color: theme.textColor }}>{t.settings.name}</p>
-                  <p className="text-sm" style={{ color: theme.textMutedColor }}>{t.settings.location}</p>
-                </div>
-                {t.settings.verified && <span className="ml-auto text-green-500 flex items-center gap-1 text-sm"><Check className="w-4 h-4" /> Overený</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-        {section.settings.layout === 'carousel' && testimonials.length > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {testimonials.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`w-3 h-3 rounded-full transition-all ${i === current ? 'w-8' : ''}`} style={{ backgroundColor: i === current ? theme.primaryColor : theme.borderColor }} />)}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: FEATURES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function FeaturesSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const features = section.blocks || [];
-  return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
-      <div className="max-w-7xl mx-auto px-4">
-        {section.settings.title && <h2 className={`text-3xl font-bold mb-10 text-${section.settings.titleAlign || 'center'}`} style={{ color: theme.headingColor }}>{section.settings.title}</h2>}
-        <div className="grid" style={{ gridTemplateColumns: `repeat(${section.settings.columns || 4}, minmax(0, 1fr))`, gap: section.settings.gap || 24 }}>
-          {features.map((feat) => (
-            <div key={feat.id} className={`text-center p-6 rounded-2xl`} style={{ backgroundColor: section.settings.style === 'card' ? (section.settings.cardBackgroundColor || theme.surfaceColor) : 'transparent', borderRadius: theme.borderRadiusLarge }}>
-              <span className="text-5xl mb-4 block" style={{ color: section.settings.iconColor === 'primary' ? theme.primaryColor : undefined }}>{feat.settings.icon}</span>
-              <h3 className="font-semibold text-lg mb-2" style={{ color: theme.textColor }}>{feat.settings.title}</h3>
-              <p className="text-sm" style={{ color: theme.textMutedColor }}>{feat.settings.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: FAQ
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function FAQSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const [openItems, setOpenItems] = useState<string[]>([]);
-  const faqs = section.blocks || [];
-  const toggleItem = (id: string) => {
-    if (section.settings.allowMultiple) {
-      setOpenItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-    } else {
-      setOpenItems(prev => prev.includes(id) ? [] : [id]);
-    }
-  };
-  return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
-      <div className="max-w-3xl mx-auto px-4" style={{ maxWidth: section.settings.maxWidth || 800 }}>
-        {section.settings.title && (
-          <div className={`mb-10 text-${section.settings.titleAlign || 'center'}`}>
-            <h2 className="text-3xl font-bold mb-2" style={{ color: theme.headingColor }}>{section.settings.title}</h2>
-            {section.settings.subtitle && <p className="text-lg" style={{ color: theme.textMutedColor }}>{section.settings.subtitle}</p>}
-          </div>
-        )}
-        <div className="space-y-3">
-          {faqs.map((faq) => (
-            <div key={faq.id} className="border rounded-xl overflow-hidden" style={{ borderColor: theme.borderColor }}>
-              <button onClick={() => toggleItem(faq.id)} className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors">
-                <span className="font-medium" style={{ color: theme.textColor }}>{faq.settings.question}</span>
-                {openItems.includes(faq.id) ? <ChevronUp className="w-5 h-5 flex-shrink-0" style={{ color: theme.textMutedColor }} /> : <ChevronDown className="w-5 h-5 flex-shrink-0" style={{ color: theme.textMutedColor }} />}
-              </button>
-              {openItems.includes(faq.id) && <div className="px-6 pb-4" style={{ color: theme.textMutedColor }}>{faq.settings.answer}</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: NEWSLETTER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function NewsletterSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setSubmitted(true); };
-  return (
-    <div style={{ background: section.settings.backgroundGradient || section.settings.backgroundColor || '#0f172a', color: section.settings.textColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
-      <div className="max-w-2xl mx-auto px-4 text-center" style={{ maxWidth: section.settings.maxWidth || 600 }}>
-        {section.settings.showIcon && <Mail className="w-12 h-12 mx-auto mb-4 opacity-80" />}
-        {section.settings.title && <h2 className={`font-bold mb-4 ${section.settings.size === 'large' ? 'text-3xl' : 'text-2xl'}`}>{section.settings.title}</h2>}
-        {section.settings.subtitle && <p className="mb-8 opacity-80">{section.settings.subtitle}</p>}
-        {submitted ? (
-          <div className="flex items-center justify-center gap-2 text-green-400"><Check className="w-6 h-6" /><span className="text-lg">Ďakujeme za prihlásenie!</span></div>
-        ) : (
-          <form onSubmit={handleSubmit} className={`flex gap-3 ${section.settings.layout === 'stacked' ? 'flex-col' : ''}`}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={section.settings.placeholder || 'Váš e-mail'} required className={`flex-1 px-5 py-4 rounded-xl focus:outline-none focus:ring-2 ${section.settings.inputStyle === 'white' ? 'bg-white text-gray-900' : 'bg-white/10 text-white placeholder-white/60'}`} />
-            <button type="submit" className="px-8 py-4 rounded-xl font-semibold transition-transform hover:scale-105 flex items-center justify-center gap-2" style={{ backgroundColor: theme.primaryColor }}>{section.settings.buttonText || 'Prihlásiť sa'} <Send className="w-5 h-5" /></button>
-          </form>
-        )}
-        {section.settings.showPrivacyNote && section.settings.privacyText && <p className="mt-4 text-sm opacity-60">{section.settings.privacyText}</p>}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: BRAND LOGOS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function BrandLogosSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const brands = section.blocks || [];
-  return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || theme.surfaceColor, paddingTop: section.settings.padding?.top || 60, paddingBottom: section.settings.padding?.bottom || 60 }}>
-      <div className="max-w-7xl mx-auto px-4">
-        {section.settings.title && <h2 className={`text-xl font-semibold mb-8 text-${section.settings.titleAlign || 'center'}`} style={{ color: theme.textMutedColor }}>{section.settings.title}</h2>}
-        <div className="flex items-center justify-center flex-wrap" style={{ gap: section.settings.gap || 48 }}>
-          {brands.map((brand) => (
-            <div key={brand.id} className={`${section.settings.grayscale ? 'grayscale hover:grayscale-0' : ''} transition-all opacity-60 hover:opacity-100`} style={{ height: section.settings.logoHeight || 48 }}>
-              {brand.settings.logo ? <img src={brand.settings.logo} alt={brand.settings.name} className="h-full w-auto object-contain" /> : <span className="text-2xl font-bold" style={{ color: theme.textMutedColor }}>{brand.settings.name}</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: IMAGE WITH TEXT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ImageWithTextSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const isImageLeft = section.settings.imagePosition !== 'right';
-  return (
-    <div style={{ backgroundColor: section.settings.backgroundColor || '#fff', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 80 }}>
-      <div className="max-w-7xl mx-auto px-4">
-        <div className={`flex flex-col ${isImageLeft ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-12`}>
-          <div className="flex-1">
-            <div className="aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center" style={{ borderRadius: section.settings.borderRadius || 16 }}>
-              {section.settings.image ? <img src={section.settings.image} alt="" className="w-full h-full object-cover" /> : <Sparkles className="w-16 h-16 text-gray-300" />}
-            </div>
-          </div>
-          <div className="flex-1" style={{ padding: section.settings.contentPadding || 0 }}>
-            {section.settings.title && <h2 className="text-3xl font-bold mb-4" style={{ color: theme.headingColor }}>{section.settings.title}</h2>}
-            {section.settings.content && <div className="prose prose-lg mb-6" style={{ color: theme.textMutedColor }} dangerouslySetInnerHTML={{ __html: section.settings.content }} />}
-            {section.settings.buttonText && <Link href={section.settings.buttonLink || '/'} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold" style={{ backgroundColor: theme.primaryColor, color: '#fff' }}>{section.settings.buttonText} <ArrowRight className="w-5 h-5" /></Link>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECTION: FOOTER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function FooterSection({ section, theme }: { section: ShopSection; theme: ShopTheme }) {
-  const columns = section.settings.columns || [];
-  const socialIcons: Record<string, any> = { facebook: Facebook, instagram: Instagram, twitter: Twitter, youtube: Youtube };
-  return (
-    <footer style={{ backgroundColor: section.settings.backgroundColor || '#0f172a', color: section.settings.textColor || '#94a3b8', paddingTop: section.settings.padding?.top || 80, paddingBottom: section.settings.padding?.bottom || 40 }}>
-      <div className="max-w-7xl mx-auto px-4">
-        <div className={`grid gap-8 md:grid-cols-${section.settings.columnsLayout || 4} mb-12`}>
-          {columns.map((col: any, index: number) => (
-            <div key={index}>
-              {col.title && <h3 className="font-semibold mb-4" style={{ color: section.settings.headingColor || '#fff' }}>{col.title}</h3>}
-              {col.content ? <div dangerouslySetInnerHTML={{ __html: col.content }} /> : col.links ? (
-                <ul className="space-y-2">
-                  {col.links.map((link: any, i: number) => <li key={i}><Link href={link.url} className="hover:underline transition-colors" style={{ color: section.settings.linkColor }}>{link.label}</Link></li>)}
-                </ul>
-              ) : null}
-            </div>
-          ))}
-        </div>
-        <div className="border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-          <div className="flex items-center gap-4">
-            {section.settings.showSocialLinks && (section.settings.socialLinks || []).map((social: any) => {
-              const Icon = socialIcons[social.platform] || ExternalLink;
-              return <a key={social.platform} href={social.url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"><Icon className="w-5 h-5" /></a>;
-            })}
-          </div>
-          {section.settings.showPaymentMethods && (
-            <div className="flex items-center gap-3">
-              {(section.settings.paymentMethods || []).map((method: string) => <div key={method} className="px-3 py-1 bg-white/10 rounded text-xs font-medium uppercase">{method}</div>)}
-            </div>
-          )}
-        </div>
-        <div className="text-center mt-8 pt-8 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-          <p className="text-sm">{section.settings.copyrightText}</p>
-          {section.settings.bottomLinks && (
-            <div className="flex items-center justify-center gap-4 mt-4">
-              {section.settings.bottomLinks.map((link: any) => <Link key={link.label} href={link.link} className="text-sm hover:underline">{link.label}</Link>)}
-            </div>
-          )}
+          <p className="text-gray-400 text-sm">{data.copyright}</p>
         </div>
       </div>
     </footer>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CART SIDEBAR
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function CartSidebar({ theme, freeShippingThreshold }: { theme: ShopTheme; freeShippingThreshold: number }) {
-  const cart = useCart();
-  const params = useParams();
-  const slug = params.slug as string;
-  const cartTotal = cart.total();
-  const remaining = Math.max(0, freeShippingThreshold - cartTotal);
-  const progress = Math.min(100, (cartTotal / freeShippingThreshold) * 100);
-  if (!cart.isOpen) return null;
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={() => cart.setCartOpen(false)} />
-      <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2"><ShoppingCart className="w-5 h-5" /> Košík ({cart.count()})</h2>
-          <button onClick={() => cart.setCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-        </div>
-        {freeShippingThreshold > 0 && (
-          <div className="p-4 bg-gray-50 border-b">
-            {remaining > 0 ? (
-              <>
-                <p className="text-sm mb-2">Ešte <strong>{formatPrice(remaining)}</strong> do dopravy zadarmo</p>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: theme.primaryColor }} /></div>
-              </>
-            ) : (
-              <p className="text-sm text-green-600 font-medium flex items-center gap-2"><Check className="w-5 h-5" /> Máte nárok na dopravu zadarmo!</p>
-            )}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto p-4">
-          {cart.items.length === 0 ? (
-            <div className="text-center py-12"><ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" /><p className="text-gray-500">Váš košík je prázdny</p></div>
-          ) : (
-            <div className="space-y-4">
-              {cart.items.map((item) => (
-                <div key={item.id} className="flex gap-4 pb-4 border-b">
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0"><Package className="w-8 h-8 text-gray-300" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{item.name}</p>
-                    <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <button onClick={() => cart.updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-gray-100"><Minus className="w-4 h-4" /></button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <button onClick={() => cart.updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-gray-100"><Plus className="w-4 h-4" /></button>
-                      <button onClick={() => cart.removeItem(item.id)} className="ml-auto text-red-500 hover:text-red-600"><X className="w-5 h-5" /></button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        {cart.items.length > 0 && (
-          <div className="p-4 border-t bg-white">
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-semibold">Celkom</span>
-              <span className="text-2xl font-bold" style={{ color: theme.primaryColor }}>{formatPrice(cartTotal)}</span>
-            </div>
-            <Link href={`/store/${slug}/checkout`} className="block w-full py-4 text-center text-white rounded-xl font-semibold" style={{ backgroundColor: theme.primaryColor }} onClick={() => cart.setCartOpen(false)}>Pokračovať k pokladni</Link>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN STORE PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ============================================
+// MAIN STORE PAGE COMPONENT
+// ============================================
 export default function StorePage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const isEditMode = searchParams.get('edit') === 'preview';
-  const editor = useEditor();
-  const cart = useCart();
-  const { shopSettings } = editor;
-  const { theme, sections } = shopSettings;
-  const sortedSections = [...sections].sort((a, b) => a.order - b.order).filter(s => s.enabled);
+  const slug = (params.slug as string) || 'demo';
+  const editMode = searchParams.get('edit') === 'true';
 
-  const handleAddToCart = (product: any) => {
-    cart.addItem({ id: product.id, name: product.name, price: product.price, image: product.images?.[0] });
-  };
+  // State
+  const [isEditorMode, setEditorMode] = useState(editMode);
+  const [isPanelOpen, setPanelOpen] = useState(editMode);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [sections, setSections] = useState<Section[]>(defaultSections);
+  const [originalSections, setOriginalSections] = useState<Section[]>(defaultSections);
+  const [shopConfig, setShopConfig] = useState<ShopConfig>({ ...defaultShopConfig, slug });
+  const [originalConfig, setOriginalConfig] = useState<ShopConfig>({ ...defaultShopConfig, slug });
+  const [hasChanges, setHasChanges] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
 
-  const renderSection = (section: ShopSection) => {
-    const commonProps = { section, theme };
-    switch (section.type) {
-      case 'announcement-bar': return <AnnouncementBarSection {...commonProps} />;
-      case 'header': return <HeaderSection {...commonProps} cartCount={cart.count()} onCartClick={() => cart.setCartOpen(true)} />;
-      case 'hero-slider': case 'hero-banner': return <HeroSliderSection {...commonProps} />;
-      case 'trust-badges': return <TrustBadgesSection {...commonProps} />;
-      case 'categories-grid': case 'categories-carousel': return <CategoriesGridSection {...commonProps} />;
-      case 'featured-products': case 'product-grid': case 'product-carousel': return <ProductsSection {...commonProps} onAddToCart={handleAddToCart} />;
-      case 'promo-banner': return <PromoBannerSection {...commonProps} />;
-      case 'testimonials': return <TestimonialsSection {...commonProps} />;
-      case 'features-icons': case 'features-grid': return <FeaturesSection {...commonProps} />;
-      case 'faq-accordion': return <FAQSection {...commonProps} />;
-      case 'newsletter': return <NewsletterSection {...commonProps} />;
-      case 'brand-logos': return <BrandLogosSection {...commonProps} />;
-      case 'image-with-text': return <ImageWithTextSection {...commonProps} />;
-      case 'footer': return <FooterSection {...commonProps} />;
-      default: return <div className="py-12 text-center bg-gray-100"><p className="text-gray-500">Sekcia: {section.type}</p></div>;
-    }
+  // Handlers
+  const updateSection = useCallback((id: string, data: Partial<Section>) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+    setHasChanges(true);
+  }, []);
+
+  const updateSectionData = useCallback((id: string, data: Record<string, any>) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, data: { ...s.data, ...data } } : s));
+    setHasChanges(true);
+  }, []);
+
+  const toggleVisibility = useCallback((id: string) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, visible: !s.visible } : s));
+    setHasChanges(true);
+  }, []);
+
+  const moveSection = useCallback((id: string, direction: 'up' | 'down') => {
+    setSections(prev => {
+      const sorted = [...prev].sort((a, b) => a.order - b.order);
+      const idx = sorted.findIndex(s => s.id === id);
+      if ((direction === 'up' && idx === 0) || (direction === 'down' && idx === sorted.length - 1)) return prev;
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      [sorted[idx], sorted[newIdx]] = [sorted[newIdx], sorted[idx]];
+      return sorted.map((s, i) => ({ ...s, order: i }));
+    });
+    setHasChanges(true);
+  }, []);
+
+  const updateShopConfig = useCallback((config: Partial<ShopConfig>) => {
+    setShopConfig(prev => ({ ...prev, ...config }));
+    setHasChanges(true);
+  }, []);
+
+  const saveChanges = useCallback(() => {
+    setOriginalSections([...sections]);
+    setOriginalConfig({ ...shopConfig });
+    setHasChanges(false);
+    console.log('Saved:', { sections, shopConfig });
+  }, [sections, shopConfig]);
+
+  const discardChanges = useCallback(() => {
+    setSections([...originalSections]);
+    setShopConfig({ ...originalConfig });
+    setHasChanges(false);
+  }, [originalSections, originalConfig]);
+
+  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
+
+  const editorContext: EditorContextType = {
+    isEditorMode,
+    setEditorMode,
+    isPanelOpen,
+    setPanelOpen,
+    activeSection,
+    setActiveSection,
+    sections,
+    updateSection,
+    updateSectionData,
+    toggleVisibility,
+    moveSection,
+    shopConfig,
+    updateShopConfig,
+    hasChanges,
+    saveChanges,
+    discardChanges,
+    hoveredSection,
+    setHoveredSection
   };
 
   return (
-    <div style={{ fontFamily: theme.fontFamily, backgroundColor: theme.backgroundColor, color: theme.textColor }}>
-      {isEditMode && (
-        <div className="fixed top-0 left-0 right-0 h-10 bg-blue-600 text-white flex items-center justify-center gap-2 z-[100] text-sm">
-          <Eye className="w-4 h-4" /> Režim náhľadu <span className="mx-2">|</span> <Link href="/dashboard/shop-builder" className="underline">Otvoriť editor</Link>
+    <EditorContext.Provider value={editorContext}>
+      <div className="min-h-screen bg-white" style={{ fontFamily: shopConfig.fontFamily }}>
+        {/* Editor Toggle Button */}
+        <button
+          onClick={() => { setEditorMode(!isEditorMode); setPanelOpen(!isEditorMode); }}
+          className={`fixed top-4 z-[60] px-4 py-2 rounded-lg font-medium shadow-lg flex items-center gap-2 transition-all ${
+            isEditorMode 
+              ? 'left-[396px] bg-gray-800 text-white hover:bg-gray-700' 
+              : 'left-4 bg-white text-gray-800 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          {isEditorMode ? (
+            <>
+              <Eye className="w-4 h-4" />
+              Režim náhľadu
+            </>
+          ) : (
+            <>
+              <PanelLeftOpen className="w-4 h-4" />
+              Otvoriť editor
+            </>
+          )}
+        </button>
+
+        {/* View Store Link */}
+        {isEditorMode && (
+          <a
+            href={`/store/${slug}`}
+            target="_blank"
+            className="fixed top-4 right-4 z-[60] px-4 py-2 bg-white text-gray-800 border border-gray-200 rounded-lg font-medium shadow-lg flex items-center gap-2 hover:bg-gray-50"
+          >
+            <Eye className="w-4 h-4" />
+            Zobraziť obchod
+          </a>
+        )}
+
+        {/* Editor Panel */}
+        {isEditorMode && <EditorPanel />}
+
+        {/* Page Content */}
+        <div className={`transition-all duration-300 ${isEditorMode && isPanelOpen ? 'ml-[380px]' : ''}`}>
+          {sortedSections.filter(s => s.visible).map((section) => {
+            const content = (() => {
+              switch (section.type) {
+                case 'announcement': return <AnnouncementSection data={section.data} />;
+                case 'header': return <HeaderSection data={section.data} shopConfig={shopConfig} />;
+                case 'hero': return <HeroSection data={section.data} shopConfig={shopConfig} />;
+                case 'features': return <FeaturesSection data={section.data} shopConfig={shopConfig} />;
+                case 'products': return <ProductsSection data={section.data} shopConfig={shopConfig} />;
+                case 'newsletter': return <NewsletterSection data={section.data} shopConfig={shopConfig} />;
+                case 'footer': return <FooterSection data={section.data} shopConfig={shopConfig} />;
+                default: return null;
+              }
+            })();
+
+            return (
+              <EditableSection key={section.id} id={section.id}>
+                {content}
+              </EditableSection>
+            );
+          })}
         </div>
-      )}
-      <div style={{ marginTop: isEditMode ? 40 : 0 }}>
-        {sortedSections.map((section) => <div key={section.id}>{renderSection(section)}</div>)}
       </div>
-      <CartSidebar theme={theme} freeShippingThreshold={shopSettings.freeShippingThreshold} />
-    </div>
+    </EditorContext.Provider>
   );
 }
