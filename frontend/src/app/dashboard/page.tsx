@@ -1,254 +1,283 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  TrendingUp, TrendingDown, DollarSign, ShoppingCart, Eye, BarChart3,
-  Package, Users, ArrowRight, Plus, ExternalLink, Palette, MoreHorizontal,
-  CheckCircle, Clock, AlertTriangle
+  TrendingUp, TrendingDown, ShoppingCart, Package, Users, Euro,
+  ArrowUpRight, ArrowRight, Eye, Clock, AlertCircle, CheckCircle,
+  BarChart3, Calendar, Zap, Star, Bell, ExternalLink
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STAT CARD
+// TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function StatCard({ 
-  title, value, change, changeType, icon: Icon, color 
-}: { 
-  title: string;
+interface StatCard {
+  label: string;
   value: string;
-  change: string;
-  changeType: 'up' | 'down';
+  change: number;
+  changeLabel: string;
   icon: any;
   color: string;
-}) {
-  const colorClasses: Record<string, { bg: string; text: string; iconBg: string }> = {
-    green: { bg: 'from-green-500/20', text: 'text-green-400', iconBg: 'bg-green-500/20' },
-    blue: { bg: 'from-blue-500/20', text: 'text-blue-400', iconBg: 'bg-blue-500/20' },
-    purple: { bg: 'from-purple-500/20', text: 'text-purple-400', iconBg: 'bg-purple-500/20' },
-    orange: { bg: 'from-orange-500/20', text: 'text-orange-400', iconBg: 'bg-orange-500/20' },
-  };
+}
 
-  const c = colorClasses[color] || colorClasses.blue;
+interface RecentOrder {
+  id: string;
+  number: string;
+  customer: string;
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  time: string;
+}
 
-  return (
-    <div className={`bg-gradient-to-br ${c.bg} to-transparent bg-gray-900 border border-gray-800 rounded-2xl p-6`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 ${c.iconBg} rounded-xl flex items-center justify-center`}>
-          <Icon className={`w-6 h-6 ${c.text}`} />
-        </div>
-        <div className={`flex items-center gap-1 text-sm font-medium ${changeType === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-          {changeType === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-          {change}
-        </div>
-      </div>
-      <div className="text-3xl font-bold text-white mb-1">{value}</div>
-      <div className="text-gray-400 text-sm">{title}</div>
-    </div>
-  );
+interface TopProduct {
+  id: string;
+  name: string;
+  sales: number;
+  revenue: number;
+  stock: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// QUICK ACTIONS
+// DEMO DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function QuickActions() {
-  const actions = [
-    { icon: Plus, label: 'Pridať do ponuky', href: '/dashboard/products/new', color: 'blue' },
-    { icon: Package, label: '3 čakajú', href: '/dashboard/orders', color: 'orange', badge: true },
-    { icon: Palette, label: 'Upraviť stránku', href: '/dashboard/shop-builder', color: 'purple' },
-    { icon: ExternalLink, label: '7 dostupných', href: '/dashboard/templates', color: 'green' },
-  ];
+const stats: StatCard[] = [
+  { label: 'Tržby dnes', value: '€1,284', change: 12.5, changeLabel: 'vs. včera', icon: Euro, color: 'blue' },
+  { label: 'Objednávky', value: '48', change: 8.2, changeLabel: 'vs. včera', icon: ShoppingCart, color: 'green' },
+  { label: 'Produkty', value: '156', change: -2.4, changeLabel: 'skladom', icon: Package, color: 'purple' },
+  { label: 'Zákazníci', value: '2,847', change: 15.3, changeLabel: 'tento mesiac', icon: Users, color: 'orange' },
+];
 
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {actions.map((action, i) => (
-        <Link
-          key={i}
-          href={action.href}
-          className="flex items-center gap-3 p-4 bg-gray-900 border border-gray-800 rounded-2xl hover:border-gray-700 transition-all group"
-        >
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-${action.color}-500/20`}>
-            <action.icon className={`w-5 h-5 text-${action.color}-400`} />
-          </div>
-          <span className="text-gray-300 group-hover:text-white transition-colors">{action.label}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
+const recentOrders: RecentOrder[] = [
+  { id: '1', number: 'ORD-2024-001', customer: 'Ján Novák', total: 89.99, status: 'pending', time: 'Pred 5 min' },
+  { id: '2', number: 'ORD-2024-002', customer: 'Mária Kováčová', total: 156.50, status: 'processing', time: 'Pred 15 min' },
+  { id: '3', number: 'ORD-2024-003', customer: 'Peter Horváth', total: 49.99, status: 'shipped', time: 'Pred 1 hod' },
+  { id: '4', number: 'ORD-2024-004', customer: 'Eva Szabová', total: 234.00, status: 'delivered', time: 'Pred 2 hod' },
+  { id: '5', number: 'ORD-2024-005', customer: 'Tomáš Varga', total: 78.50, status: 'processing', time: 'Pred 3 hod' },
+];
+
+const topProducts: TopProduct[] = [
+  { id: '1', name: 'Bezdrôtové slúchadlá Pro', sales: 124, revenue: 11159, stock: 45 },
+  { id: '2', name: 'USB-C Hub 7v1', sales: 98, revenue: 4899, stock: 23 },
+  { id: '3', name: 'Mechanická klávesnica RGB', sales: 87, revenue: 11309, stock: 12 },
+  { id: '4', name: 'Ergonomická myš', sales: 76, revenue: 4559, stock: 67 },
+  { id: '5', name: 'Monitor stojan', sales: 65, revenue: 3244, stock: 8 },
+];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RECENT ORDERS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function RecentOrders() {
-  const orders = [
-    { id: 'ORD-001', customer: 'Ján Novák', total: 89.99, status: 'completed', items: 2 },
-    { id: 'ORD-002', customer: 'Mária K.', total: 249.50, status: 'processing', items: 5 },
-    { id: 'ORD-003', customer: 'Peter S.', total: 34.99, status: 'pending', items: 1 },
-    { id: 'ORD-004', customer: 'Anna M.', total: 159.00, status: 'completed', items: 3 },
-    { id: 'ORD-005', customer: 'Tomáš H.', total: 79.99, status: 'processing', items: 2 },
-  ];
-
-  const statusConfig: Record<string, { bg: string; text: string; icon: any; label: string }> = {
-    completed: { bg: 'bg-green-500/20', text: 'text-green-400', icon: CheckCircle, label: 'Dokončené' },
-    processing: { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: Clock, label: 'Spracováva sa' },
-    pending: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: AlertTriangle, label: 'Čaká' },
-  };
-
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl">
-      <div className="flex items-center justify-between p-5 border-b border-gray-800">
-        <h2 className="font-semibold text-white">Posledné objednávky</h2>
-        <Link href="/dashboard/orders" className="text-blue-400 text-sm hover:text-blue-300 flex items-center gap-1">
-          Zobraziť všetky <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-      <div className="divide-y divide-gray-800">
-        {orders.map(order => {
-          const status = statusConfig[order.status];
-          return (
-            <div key={order.id} className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                  {order.customer.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-medium text-white">{order.id}</p>
-                  <p className="text-sm text-gray-500">{order.customer} · {order.items} položiek</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
-                  <status.icon className="w-3.5 h-3.5" />
-                  {status.label}
-                </span>
-                <span className="font-semibold text-white">€{order.total.toFixed(2)}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TOP PRODUCTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TopProducts() {
-  const products = [
-    { name: 'Bezdrôtové slúchadlá Pro', sold: 124, revenue: 11151.76 },
-    { name: 'Smart Watch Ultra', sold: 89, revenue: 17799.11 },
-    { name: 'Prémiový obal na telefón', sold: 256, revenue: 7679.44 },
-    { name: 'USB-C Hub 7v1', sold: 178, revenue: 8899.22 },
-    { name: 'Bluetooth reproduktor', sold: 145, revenue: 8699.55 },
-  ];
-
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl">
-      <div className="flex items-center justify-between p-5 border-b border-gray-800">
-        <h2 className="font-semibold text-white">Top produkty</h2>
-        <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-          <MoreHorizontal className="w-5 h-5 text-gray-400" />
-        </button>
-      </div>
-      <div className="p-4 space-y-3">
-        {products.map((product, i) => (
-          <div key={i} className="flex items-center gap-4">
-            <span className="w-6 text-center text-gray-500 font-medium">{i + 1}</span>
-            <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-gray-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-white truncate">{product.name}</p>
-              <p className="text-sm text-gray-500">{product.sold} predaných</p>
-            </div>
-            <span className="font-semibold text-white">€{product.revenue.toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN DASHBOARD
+// DASHBOARD PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function DashboardPage() {
+  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500/20 text-yellow-400';
+      case 'processing': return 'bg-blue-500/20 text-blue-400';
+      case 'shipped': return 'bg-purple-500/20 text-purple-400';
+      case 'delivered': return 'bg-green-500/20 text-green-400';
+      default: return 'bg-slate-500/20 text-slate-400';
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Čaká';
+      case 'processing': return 'Spracováva sa';
+      case 'shipped': return 'Odoslané';
+      case 'delivered': return 'Doručené';
+      default: return status;
+    }
+  };
+
+  const colorClass = (color: string) => {
+    switch (color) {
+      case 'blue': return 'bg-blue-500/20 text-blue-400';
+      case 'green': return 'bg-green-500/20 text-green-400';
+      case 'purple': return 'bg-purple-500/20 text-purple-400';
+      case 'orange': return 'bg-orange-500/20 text-orange-400';
+      default: return 'bg-slate-500/20 text-slate-400';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Welcome */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Vitajte späť! 👋</h1>
-          <p className="text-gray-400 mt-1">Tu je prehľad vášho obchodu.</p>
+          <h1 className="text-2xl font-bold">Prehľad</h1>
+          <p className="text-slate-400 mt-1">Vitajte späť! Tu je prehľad vášho obchodu.</p>
         </div>
-        <div className="flex gap-3">
-          <Link
-            href="/store/demo"
-            target="_blank"
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Zobraziť obchod
-          </Link>
-          <Link
-            href="/dashboard/shop-builder"
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
-          >
-            <Palette className="w-4 h-4" />
-            Upraviť dizajn
-          </Link>
+        <div className="flex items-center gap-2">
+          {(['today', 'week', 'month'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                period === p ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              {p === 'today' ? 'Dnes' : p === 'week' ? 'Týždeň' : 'Mesiac'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Tržby dnes"
-          value="€1,234"
-          change="+12.5%"
-          changeType="up"
-          icon={DollarSign}
-          color="green"
-        />
-        <StatCard
-          title="Objednávky"
-          value="28"
-          change="+5.2%"
-          changeType="up"
-          icon={ShoppingCart}
-          color="blue"
-        />
-        <StatCard
-          title="Návštevníci"
-          value="1,847"
-          change="-2.4%"
-          changeType="down"
-          icon={Eye}
-          color="purple"
-        />
-        <StatCard
-          title="Konverzia"
-          value="3.2%"
-          change="+0.8%"
-          changeType="up"
-          icon={BarChart3}
-          color="orange"
-        />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass(stat.color)}`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div className={`flex items-center gap-1 text-sm ${stat.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {stat.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                {Math.abs(stat.change)}%
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-slate-400">{stat.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Quick Actions */}
-      <QuickActions />
+      {/* Charts & Activity */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Revenue Chart Placeholder */}
+        <div className="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold">Tržby</h2>
+            <Link href="/dashboard/analytics" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Zobraziť všetko <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-700 rounded-xl">
+            <div className="text-center">
+              <BarChart3 className="w-12 h-12 text-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500">Graf tržieb</p>
+              <p className="text-xs text-slate-600">Pripojte sa k API pre živé dáta</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Content Grid */}
+        {/* Quick Actions */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold mb-4">Rýchle akcie</h2>
+          <div className="space-y-3">
+            <Link href="/dashboard/products/new" className="flex items-center gap-3 p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Pridať produkt</p>
+                <p className="text-xs text-slate-400">Nový produkt do katalógu</p>
+              </div>
+              <ArrowUpRight className="w-5 h-5 text-slate-400" />
+            </Link>
+            <Link href="/dashboard/orders" className="flex items-center gap-3 p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors">
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Objednávky</p>
+                <p className="text-xs text-slate-400">3 čakajú na spracovanie</p>
+              </div>
+              <ArrowUpRight className="w-5 h-5 text-slate-400" />
+            </Link>
+            <Link href="/dashboard/shop-builder" className="flex items-center gap-3 p-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Shop Builder</p>
+                <p className="text-xs text-slate-400">Upraviť dizajn obchodu</p>
+              </div>
+              <ArrowUpRight className="w-5 h-5 text-slate-400" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders & Top Products */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <RecentOrders />
-        <TopProducts />
+        {/* Recent Orders */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold">Posledné objednávky</h2>
+            <Link href="/dashboard/orders" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Všetky <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {recentOrders.map((order) => (
+              <div key={order.id} className="flex items-center gap-4 p-3 bg-slate-700/30 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm">{order.number}</p>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${statusColor(order.status)}`}>
+                      {statusLabel(order.status)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 truncate">{order.customer}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">€{order.total.toFixed(2)}</p>
+                  <p className="text-xs text-slate-500">{order.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Products */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold">Top produkty</h2>
+            <Link href="/dashboard/products" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Všetky <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {topProducts.map((product, i) => (
+              <div key={product.id} className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-400">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{product.name}</p>
+                  <p className="text-xs text-slate-400">{product.sales} predaných</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-sm">€{product.revenue.toLocaleString()}</p>
+                  <p className={`text-xs ${product.stock < 15 ? 'text-red-400' : 'text-slate-500'}`}>
+                    {product.stock} ks
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Alerts / Notifications */}
+      <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-2xl p-5">
+        <div className="flex items-start gap-4">
+          <AlertCircle className="w-6 h-6 text-orange-400 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-orange-400">Upozornenia</h3>
+            <ul className="mt-2 space-y-1 text-sm text-slate-300">
+              <li>• <strong>3 produkty</strong> majú nízky sklad (menej ako 10 ks)</li>
+              <li>• <strong>2 objednávky</strong> čakajú na spracovanie viac ako 24 hodín</li>
+              <li>• Vaša skúšobná verzia vyprší o <strong>7 dní</strong></li>
+            </ul>
+          </div>
+          <Link href="/dashboard/settings" className="text-sm text-orange-400 hover:underline whitespace-nowrap">
+            Vyriešiť →
+          </Link>
+        </div>
       </div>
     </div>
   );
