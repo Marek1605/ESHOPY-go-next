@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   ArrowLeft, Check, Truck, CreditCard, Package, Building, Banknote, MapPin, 
   Sparkles, ChevronRight, Shield, Lock, Clock, User, Mail, Phone, Home,
-  AlertCircle, Info, Loader2
+  AlertCircle, Info, Loader2, RotateCcw
 } from 'lucide-react';
 import { useCart, useEditor, useSettings, formatPrice } from '@/lib/store';
 
