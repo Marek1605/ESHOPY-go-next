@@ -1,330 +1,239 @@
 'use client';
+
 import { useState } from 'react';
-import Link from 'next/link';
-import { 
-  Truck, Save, ChevronRight, Check, Package, MapPin, Building,
-  Plus, Trash2, ExternalLink, Eye, EyeOff, AlertCircle, Clock
-} from 'lucide-react';
-import { useSettings } from '@/lib/store';
+import { Truck, Package, MapPin, Plus, Edit, Trash2, Check, X, Clock, Euro } from 'lucide-react';
 
-export default function ShippingSettingsPage() {
-  const { shipping, updateShipping } = useSettings();
-  const [saved, setSaved] = useState(false);
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+interface ShippingMethod {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  freeFrom: number | null;
+  estimatedDays: string;
+  enabled: boolean;
+  type: 'courier' | 'pickup' | 'store';
+}
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+interface ShippingZone {
+  id: string;
+  name: string;
+  countries: string[];
+  methods: string[];
+}
+
+const initialMethods: ShippingMethod[] = [
+  { id: 'courier-standard', name: 'Kuriér - Štandard', description: 'Doručenie kuriérom GLS/DPD', price: 4.99, freeFrom: 50, estimatedDays: '2-3 pracovné dni', enabled: true, type: 'courier' },
+  { id: 'courier-express', name: 'Kuriér - Express', description: 'Doručenie do 24 hodín', price: 9.99, freeFrom: 100, estimatedDays: '1 pracovný deň', enabled: true, type: 'courier' },
+  { id: 'packeta', name: 'Zásielkovňa', description: 'Výdajné miesta Zásielkovňa', price: 2.99, freeFrom: 40, estimatedDays: '1-2 pracovné dni', enabled: true, type: 'pickup' },
+  { id: 'posta', name: 'Slovenská pošta', description: 'Doručenie Slovenskou poštou', price: 3.49, freeFrom: 60, estimatedDays: '3-5 pracovných dní', enabled: false, type: 'courier' },
+  { id: 'store', name: 'Osobný odber', description: 'Odber na predajni', price: 0, freeFrom: null, estimatedDays: 'Ihneď po potvrdení', enabled: true, type: 'store' },
+];
+
+const initialZones: ShippingZone[] = [
+  { id: 'sk', name: 'Slovensko', countries: ['SK'], methods: ['courier-standard', 'courier-express', 'packeta', 'store'] },
+  { id: 'cz', name: 'Česká republika', countries: ['CZ'], methods: ['courier-standard', 'packeta'] },
+  { id: 'eu', name: 'EÚ', countries: ['DE', 'AT', 'PL', 'HU'], methods: ['courier-standard'] },
+];
+
+export default function ShippingPage() {
+  const [methods, setMethods] = useState<ShippingMethod[]>(initialMethods);
+  const [zones, setZones] = useState<ShippingZone[]>(initialZones);
+  const [activeTab, setActiveTab] = useState<'methods' | 'zones'>('methods');
+  const [editMethod, setEditMethod] = useState<ShippingMethod | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const toggleMethod = (id: string) => {
+    setMethods(methods.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m));
   };
 
-  const shippingProviders = [
-    {
-      id: 'dpd',
-      name: 'DPD',
-      description: 'Expresné doručenie kuriérom',
-      icon: Truck,
-      color: '#dc0032',
-      fields: [
-        { key: 'apiKey', label: 'API Key', type: 'password' },
-        { key: 'username', label: 'Username', type: 'text' },
-        { key: 'password', label: 'Password', type: 'password' },
-      ],
-      hasWidget: true,
-      docsUrl: 'https://www.dpd.sk',
-    },
-    {
-      id: 'zasielkovna',
-      name: 'Zásielkovňa',
-      description: 'Výdajné miesta a Z-BOXy',
-      icon: Package,
-      color: '#ba1b02',
-      fields: [
-        { key: 'apiKey', label: 'API Key', type: 'password' },
-      ],
-      hasWidget: true,
-      docsUrl: 'https://client.packeta.com',
-    },
-    {
-      id: 'slovakPost',
-      name: 'Slovenská pošta',
-      description: 'Doručenie poštou',
-      icon: Building,
-      color: '#ffd200',
-      fields: [
-        { key: 'apiKey', label: 'API Key', type: 'password' },
-      ],
-      hasWidget: false,
-      docsUrl: 'https://www.posta.sk',
-    },
-    {
-      id: 'gls',
-      name: 'GLS',
-      description: 'Medzinárodná preprava',
-      icon: Truck,
-      color: '#0066b3',
-      fields: [
-        { key: 'apiKey', label: 'API Key', type: 'password' },
-        { key: 'clientNumber', label: 'Client Number', type: 'text' },
-      ],
-      hasWidget: false,
-      docsUrl: 'https://gls-group.com',
-    },
-  ];
+  const openEdit = (method: ShippingMethod) => {
+    setEditMethod(method);
+    setShowModal(true);
+  };
+
+  const saveMethod = (data: Partial<ShippingMethod>) => {
+    if (!editMethod) return;
+    setMethods(methods.map(m => m.id === editMethod.id ? { ...m, ...data } : m));
+    setShowModal(false);
+    setEditMethod(null);
+  };
+
+  const typeIcon = (type: string) => {
+    switch (type) {
+      case 'courier': return <Truck className="w-5 h-5" />;
+      case 'pickup': return <Package className="w-5 h-5" />;
+      case 'store': return <MapPin className="w-5 h-5" />;
+      default: return <Truck className="w-5 h-5" />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Link href="/dashboard" className="hover:text-gray-700">Dashboard</Link>
-              <ChevronRight className="w-4 h-4" />
-              <Link href="/dashboard/settings" className="hover:text-gray-700">Nastavenia</Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900">Doprava</span>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold">Doprava</h1>
+          <p className="text-gray-400 mt-1">Nastavte spôsoby doručenia a zóny</p>
+        </div>
+        <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">
+          <Plus className="w-5 h-5" /> Pridať metódu
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="text-2xl font-bold">{methods.filter(m => m.enabled).length}</div>
+          <div className="text-gray-400 text-sm">Aktívne metódy</div>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="text-2xl font-bold">{zones.length}</div>
+          <div className="text-gray-400 text-sm">Doručovacie zóny</div>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="text-2xl font-bold">€{Math.min(...methods.filter(m => m.enabled).map(m => m.price)).toFixed(2)}</div>
+          <div className="text-gray-400 text-sm">Od (najnižšia)</div>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="text-2xl font-bold">€{methods.find(m => m.id === 'courier-standard')?.freeFrom || 50}</div>
+          <div className="text-gray-400 text-sm">Doprava zadarmo od</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('methods')}
+          className={`px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === 'methods' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+        >
+          Metódy doručenia
+        </button>
+        <button
+          onClick={() => setActiveTab('zones')}
+          className={`px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === 'zones' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+        >
+          Doručovacie zóny
+        </button>
+      </div>
+
+      {/* Methods Tab */}
+      {activeTab === 'methods' && (
+        <div className="space-y-4">
+          {methods.map(method => (
+            <div key={method.id} className={`bg-gray-900 border rounded-2xl p-5 transition-all ${method.enabled ? 'border-gray-700' : 'border-gray-800 opacity-60'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  method.type === 'courier' ? 'bg-blue-500/20 text-blue-400' :
+                  method.type === 'pickup' ? 'bg-purple-500/20 text-purple-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {typeIcon(method.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-white">{method.name}</h3>
+                    {method.price === 0 && <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">Zadarmo</span>}
+                  </div>
+                  <p className="text-gray-400 text-sm mt-0.5">{method.description}</p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><Euro className="w-3 h-3" /> {method.price > 0 ? `€${method.price.toFixed(2)}` : 'Zadarmo'}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {method.estimatedDays}</span>
+                    {method.freeFrom && <span>Zadarmo od €{method.freeFrom}</span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button onClick={() => openEdit(method)} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white">
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => toggleMethod(method.id)} className={`w-12 h-6 rounded-full transition-colors ${method.enabled ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${method.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Truck className="w-6 h-6 text-blue-500" /> Spôsoby dopravy
-            </h1>
-          </div>
-          <button
-            onClick={handleSave}
-            className={`px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all ${
-              saved ? 'bg-green-500 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            {saved ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
-            {saved ? 'Uložené!' : 'Uložiť zmeny'}
+          ))}
+        </div>
+      )}
+
+      {/* Zones Tab */}
+      {activeTab === 'zones' && (
+        <div className="space-y-4">
+          {zones.map(zone => (
+            <div key={zone.id} className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-white">{zone.name}</h3>
+                  <p className="text-gray-400 text-sm">{zone.countries.join(', ')}</p>
+                </div>
+                <button className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white">
+                  <Edit className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {zone.methods.map(methodId => {
+                  const method = methods.find(m => m.id === methodId);
+                  if (!method) return null;
+                  return (
+                    <span key={methodId} className="px-3 py-1.5 bg-gray-800 rounded-lg text-sm text-gray-300 flex items-center gap-2">
+                      {typeIcon(method.type)}
+                      {method.name}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <button className="w-full py-4 border-2 border-dashed border-gray-700 rounded-2xl text-gray-500 hover:text-white hover:border-gray-600 flex items-center justify-center gap-2">
+            <Plus className="w-5 h-5" /> Pridať zónu
           </button>
         </div>
-      </div>
+      )}
 
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Shipping Providers */}
-        {shippingProviders.map(provider => {
-          const data = (shipping as any)[provider.id] || {};
-          
-          return (
-            <div key={provider.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                    style={{ backgroundColor: provider.color }}
-                  >
-                    <provider.icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold flex items-center gap-2">
-                      {provider.name}
-                      <a href={provider.docsUrl} target="_blank" className="text-blue-500 hover:text-blue-600">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </h2>
-                    <p className="text-sm text-gray-500">{provider.description}</p>
-                  </div>
-                </div>
-                <div
-                  onClick={() => updateShipping(provider.id, { enabled: !data.enabled })}
-                  className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    data.enabled ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow ${
-                    data.enabled ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </div>
-              </div>
-
-              {data.enabled && (
-                <div className="p-6 bg-gray-50 space-y-4">
-                  {/* Pricing */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Cena dopravy (€)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={data.price || 0}
-                        onChange={(e) => updateShipping(provider.id, { price: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Zadarmo od (€)</label>
-                      <input
-                        type="number"
-                        value={data.freeFrom || 0}
-                        onChange={(e) => updateShipping(provider.id, { freeFrom: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">0 = nikdy zadarmo</p>
-                    </div>
-                  </div>
-
-                  {/* API Fields */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <h3 className="font-medium text-sm">API nastavenia</h3>
-                    {provider.fields.map(field => (
-                      <div key={field.key}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">{field.label}</label>
-                        <div className="relative">
-                          <input
-                            type={field.type === 'password' && !showSecrets[`${provider.id}-${field.key}`] ? 'password' : 'text'}
-                            value={data[field.key] || ''}
-                            onChange={(e) => updateShipping(provider.id, { [field.key]: e.target.value })}
-                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm"
-                          />
-                          {field.type === 'password' && (
-                            <button
-                              onClick={() => setShowSecrets(prev => ({ ...prev, [`${provider.id}-${field.key}`]: !prev[`${provider.id}-${field.key}`] }))}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                              {showSecrets[`${provider.id}-${field.key}`] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Widget Toggle */}
-                  {provider.hasWidget && (
-                    <div className="pt-4 border-t">
-                      <label className="flex items-center justify-between cursor-pointer">
-                        <div>
-                          <p className="font-medium text-sm">Zobraziť widget výberu</p>
-                          <p className="text-xs text-gray-500">Zákazník si môže vybrať presné miesto na mape</p>
-                        </div>
-                        <div
-                          onClick={() => updateShipping(provider.id, { showWidget: !data.showWidget })}
-                          className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                            data.showWidget ? 'bg-blue-500' : 'bg-gray-300'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow ${
-                            data.showWidget ? 'translate-x-6' : 'translate-x-0.5'
-                          }`} />
-                        </div>
-                      </label>
-                    </div>
-                  )}
-                </div>
-              )}
+      {/* Edit Modal */}
+      {showModal && editMethod && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setShowModal(false)} />
+          <div className="relative bg-gray-900 rounded-2xl w-full max-w-lg border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-lg font-semibold text-white">Upraviť metódu dopravy</h2>
             </div>
-          );
-        })}
-
-        {/* Personal Pickup */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
-                <MapPin className="w-6 h-6" />
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Názov</label>
+                <input type="text" defaultValue={editMethod.name}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white" />
               </div>
               <div>
-                <h2 className="font-semibold">Osobný odber</h2>
-                <p className="text-sm text-gray-500">Zákazník si vyzdvihne tovar osobne</p>
+                <label className="block text-sm text-gray-400 mb-2">Popis</label>
+                <input type="text" defaultValue={editMethod.description}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Cena (€)</label>
+                  <input type="number" step="0.01" defaultValue={editMethod.price}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Zadarmo od (€)</label>
+                  <input type="number" defaultValue={editMethod.freeFrom || ''}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white" placeholder="Nevyžaduje sa" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Odhadovaný čas doručenia</label>
+                <input type="text" defaultValue={editMethod.estimatedDays}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white" />
               </div>
             </div>
-            <div
-              onClick={() => updateShipping('personalPickup', { enabled: !shipping.personalPickup?.enabled })}
-              className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                shipping.personalPickup?.enabled ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            >
-              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow ${
-                shipping.personalPickup?.enabled ? 'translate-x-6' : 'translate-x-0.5'
-              }`} />
+            <div className="p-6 border-t border-gray-800 flex justify-end gap-3">
+              <button onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-gray-800 text-white rounded-xl">Zrušiť</button>
+              <button onClick={() => saveMethod({})} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl">Uložiť</button>
             </div>
           </div>
-
-          {shipping.personalPickup?.enabled && (
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="font-medium text-sm flex items-center gap-2">
-                <MapPin className="w-4 h-4" /> Výdajné miesta
-              </h3>
-              
-              {(shipping.personalPickup?.locations || []).map((location: any, index: number) => (
-                <div key={location.id} className="p-4 border rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{location.name || `Miesto ${index + 1}`}</span>
-                    <button
-                      onClick={() => {
-                        const locations = [...(shipping.personalPickup?.locations || [])];
-                        locations.splice(index, 1);
-                        updateShipping('personalPickup', { locations });
-                      }}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={location.name}
-                    onChange={(e) => {
-                      const locations = [...(shipping.personalPickup?.locations || [])];
-                      locations[index] = { ...location, name: e.target.value };
-                      updateShipping('personalPickup', { locations });
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="Názov miesta"
-                  />
-                  <input
-                    type="text"
-                    value={location.address}
-                    onChange={(e) => {
-                      const locations = [...(shipping.personalPickup?.locations || [])];
-                      locations[index] = { ...location, address: e.target.value };
-                      updateShipping('personalPickup', { locations });
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="Adresa"
-                  />
-                  <input
-                    type="text"
-                    value={location.openingHours}
-                    onChange={(e) => {
-                      const locations = [...(shipping.personalPickup?.locations || [])];
-                      locations[index] = { ...location, openingHours: e.target.value };
-                      updateShipping('personalPickup', { locations });
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="Otváracie hodiny (napr. Po-Pi: 9:00-17:00)"
-                  />
-                </div>
-              ))}
-
-              <button
-                onClick={() => {
-                  const locations = [...(shipping.personalPickup?.locations || [])];
-                  locations.push({
-                    id: Date.now().toString(),
-                    name: '',
-                    address: '',
-                    openingHours: 'Po-Pi: 9:00-17:00',
-                  });
-                  updateShipping('personalPickup', { locations });
-                }}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center gap-2 transition-colors"
-              >
-                <Plus className="w-5 h-5" /> Pridať výdajné miesto
-              </button>
-            </div>
-          )}
         </div>
-
-        {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-          <Clock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Tip: Nastavte automatickú dopravu zadarmo</p>
-            <p>Zákazníci nakupujú viac, keď vidia, že sú blízko k doprave zadarmo. Odporúčame nastaviť limit na €50.</p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
