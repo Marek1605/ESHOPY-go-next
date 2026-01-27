@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ShoppingCart, Heart, Search, User, Menu, X, ChevronLeft, ChevronRight, 
@@ -8,10 +8,13 @@ import {
   Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Clock,
   Play, Pause, ChevronDown, ChevronUp, Send, Quote, Sparkles, ArrowRight,
   CreditCard, Smartphone, AlertCircle, ExternalLink, Eye, Package,
-  Palette, Save, Layers, GripVertical, EyeOff, Trash2, Copy, Settings
+  // Admin Bar & Editor icons
+  Palette, Save, Layers, GripVertical, EyeOff, Trash2, Copy, Settings,
+  LayoutDashboard, ShoppingBag, Users, TrendingUp, Bell, LogOut, Edit3,
+  PanelLeftClose, PanelLeftOpen, Undo, Redo, Monitor, Tablet, Home,
+  BarChart3, Euro, Activity
 } from 'lucide-react';
-import { SECTION_INFO } from '@/lib/store';
-import { useCart, useEditor, demoProducts, formatPrice, calculateDiscount, ShopSection, ShopTheme } from '@/lib/store';
+import { useCart, useEditor, demoProducts, formatPrice, calculateDiscount, ShopSection, ShopTheme, SECTION_INFO } from '@/lib/store';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER COMPONENTS
@@ -705,23 +708,547 @@ function CartSidebar({ theme, freeShippingThreshold }: { theme: ShopTheme; freeS
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN BAR - WordPress štýl (pre prihlásených vlastníkov)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function AdminBar({ 
+  user, 
+  isEditing, 
+  onToggleEdit, 
+  onLogout,
+  stats 
+}: { 
+  user: any; 
+  isEditing: boolean; 
+  onToggleEdit: () => void;
+  onLogout: () => void;
+  stats: { revenue: number; orders: number; visitors: number };
+}) {
+  return (
+    <div className="fixed top-0 left-0 right-0 h-10 bg-slate-900 text-white z-[200] flex items-center justify-between px-4 text-sm shadow-lg">
+      {/* Left - Logo & Stats */}
+      <div className="flex items-center gap-6">
+        <Link href="/dashboard" className="flex items-center gap-2 hover:bg-slate-800 px-2 py-1 rounded transition-colors">
+          <Sparkles className="w-4 h-4 text-blue-400" />
+          <span className="font-semibold hidden sm:inline">EshopBuilder</span>
+        </Link>
+
+        {/* Quick Stats */}
+        <div className="hidden md:flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">
+            <Euro className="w-3.5 h-3.5" />
+            <span className="font-semibold">€{stats.revenue.toLocaleString()}</span>
+            <span className="text-emerald-300/60 hidden lg:inline">dnes</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-400 rounded-full">
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span className="font-semibold">{stats.orders}</span>
+            <span className="text-blue-300/60 hidden lg:inline">objednávok</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/20 text-purple-400 rounded-full">
+            <Users className="w-3.5 h-3.5" />
+            <span className="font-semibold">{stats.visitors}</span>
+            <span className="text-purple-300/60 hidden lg:inline">návštevníkov</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right - Actions */}
+      <div className="flex items-center gap-2">
+        {/* Edit Toggle */}
+        <button
+          onClick={onToggleEdit}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            isEditing 
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+              : 'bg-slate-800 hover:bg-slate-700 text-gray-300'
+          }`}
+        >
+          {isEditing ? (
+            <>
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Ukončiť úpravy</span>
+            </>
+          ) : (
+            <>
+              <Edit3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Upraviť stránku</span>
+            </>
+          )}
+        </button>
+
+        {/* Dashboard Link */}
+        <Link 
+          href="/dashboard" 
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-gray-300 transition-colors"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Dashboard</span>
+        </Link>
+
+        {/* Notifications */}
+        <button className="p-1.5 hover:bg-slate-800 rounded-lg relative transition-colors">
+          <Bell className="w-4 h-4 text-gray-400" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        </button>
+
+        {/* User Menu */}
+        <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-700">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold">
+            {user?.name?.charAt(0) || 'U'}
+          </div>
+          <button 
+            onClick={onLogout}
+            className="p-1.5 hover:bg-slate-800 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
+            title="Odhlásiť sa"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INLINE EDITOR PANEL - WordPress Customizer štýl
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function InlineEditorPanel({
+  isOpen,
+  onToggle,
+  selectedSection,
+  onSelectSection,
+  sections,
+}: {
+  isOpen: boolean;
+  onToggle: () => void;
+  selectedSection: ShopSection | null;
+  onSelectSection: (section: ShopSection | null) => void;
+  sections: ShopSection[];
+}) {
+  const editor = useEditor();
+  const { toggleSection, moveSection, removeSection, duplicateSection, updateSectionSettings, hasUnsavedChanges, saveChanges, undo, redo, canUndo, canRedo } = editor;
+  const [activeTab, setActiveTab] = useState<'content' | 'style'>('content');
+
+  return (
+    <>
+      {/* Panel */}
+      <div className={`
+        fixed top-10 left-0 h-[calc(100vh-40px)] w-[340px] bg-slate-900 shadow-2xl z-[150]
+        transform transition-transform duration-300 ease-out flex flex-col border-r border-slate-700
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Header */}
+        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-700 bg-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-white text-sm">Shop Builder</h2>
+              <p className="text-xs text-gray-500">Upravte svoj obchod</p>
+            </div>
+          </div>
+          <button 
+            onClick={onToggle}
+            className="p-2 hover:bg-slate-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+          >
+            <PanelLeftClose className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Toolbar */}
+        <div className="h-11 flex items-center justify-between px-3 border-b border-slate-700/50 bg-slate-800/30">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => undo()}
+              disabled={!canUndo()}
+              className="p-2 hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Späť (Ctrl+Z)"
+            >
+              <Undo className="w-4 h-4 text-gray-400" />
+            </button>
+            <button
+              onClick={() => redo()}
+              disabled={!canRedo()}
+              className="p-2 hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Znova (Ctrl+Y)"
+            >
+              <Redo className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Device Preview */}
+          <div className="flex items-center gap-0.5 bg-slate-800 rounded-lg p-0.5">
+            {[
+              { id: 'desktop', icon: Monitor },
+              { id: 'tablet', icon: Tablet },
+              { id: 'mobile', icon: Smartphone },
+            ].map((d) => (
+              <button
+                key={d.id}
+                className="p-1.5 rounded-md text-gray-500 hover:text-white transition-colors"
+                title={d.id}
+              >
+                <d.icon className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          {selectedSection ? (
+            // Section Editor
+            <div className="p-4">
+              <button 
+                onClick={() => onSelectSection(null)}
+                className="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 mb-4 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Späť na sekcie
+              </button>
+
+              <div className="flex items-center gap-3 mb-5 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                <span className="text-2xl">{SECTION_INFO[selectedSection.type]?.icon || '📦'}</span>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">
+                    {SECTION_INFO[selectedSection.type]?.name || selectedSection.type}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {SECTION_INFO[selectedSection.type]?.description || 'Upravte nastavenia sekcie'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex gap-1 mb-4 bg-slate-800/50 rounded-xl p-1">
+                <button
+                  onClick={() => setActiveTab('content')}
+                  className={`flex-1 py-2.5 text-xs font-medium rounded-lg transition-all ${
+                    activeTab === 'content' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Obsah
+                </button>
+                <button
+                  onClick={() => setActiveTab('style')}
+                  className={`flex-1 py-2.5 text-xs font-medium rounded-lg transition-all ${
+                    activeTab === 'style' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Štýl
+                </button>
+              </div>
+
+              {/* Editor Content */}
+              <div className="space-y-4">
+                {activeTab === 'content' ? (
+                  <SectionContentEditorInline section={selectedSection} update={(k, v) => updateSectionSettings(selectedSection.id, { [k]: v })} />
+                ) : (
+                  <SectionStyleEditorInline section={selectedSection} update={(k, v) => updateSectionSettings(selectedSection.id, { [k]: v })} />
+                )}
+              </div>
+
+              {/* Section Actions */}
+              <div className="mt-6 pt-4 border-t border-slate-700 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleSection(selectedSection.id)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all ${
+                      selectedSection.enabled 
+                        ? 'bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700' 
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    }`}
+                  >
+                    {selectedSection.enabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {selectedSection.enabled ? 'Skryť' : 'Zobraziť'}
+                  </button>
+                  <button
+                    onClick={() => duplicateSection(selectedSection.id)}
+                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm flex items-center justify-center gap-2 text-gray-300 border border-slate-700 transition-colors"
+                  >
+                    <Copy className="w-4 h-4" /> Duplikovať
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    removeSection(selectedSection.id);
+                    onSelectSection(null);
+                  }}
+                  className="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm flex items-center justify-center gap-2 border border-red-500/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Odstrániť sekciu
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Section List
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-white text-sm">Sekcie</h3>
+                <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                  <Plus className="w-3.5 h-3.5" /> Pridať sekciu
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {sections.map((section, index) => {
+                  const info = SECTION_INFO[section.type];
+                  return (
+                    <div
+                      key={section.id}
+                      onClick={() => onSelectSection(section)}
+                      className={`
+                        group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
+                        ${!section.enabled ? 'opacity-50' : ''}
+                        bg-slate-800/30 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50
+                      `}
+                    >
+                      <div className="cursor-grab p-1 hover:bg-slate-700 rounded transition-colors">
+                        <GripVertical className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <span className="text-lg">{info?.icon || '📦'}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {info?.name || section.type}
+                        </p>
+                        {section.blocks && section.blocks.length > 0 && (
+                          <p className="text-xs text-gray-500">{section.blocks.length} položiek</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'up'); }}
+                          disabled={index === 0}
+                          className="p-1 hover:bg-slate-600 rounded disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronUp className="w-4 h-4 text-gray-400" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'down'); }}
+                          disabled={index === sections.length - 1}
+                          className="p-1 hover:bg-slate-600 rounded disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSection(section.id); }}
+                          className={`p-1 rounded transition-colors ${
+                            section.enabled ? 'text-emerald-400 hover:bg-emerald-500/20' : 'text-gray-500 hover:bg-slate-600'
+                          }`}
+                        >
+                          {section.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-700 bg-slate-800/30">
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 text-yellow-400 text-xs mb-3">
+              <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+              Máte neuložené zmeny
+            </div>
+          )}
+          <button
+            onClick={() => saveChanges()}
+            disabled={!hasUnsavedChanges}
+            className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+              hasUnsavedChanges
+                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+            }`}
+          >
+            <Save className="w-5 h-5" />
+            {hasUnsavedChanges ? 'Uložiť zmeny' : 'Všetko uložené'}
+          </button>
+        </div>
+      </div>
+
+      {/* Toggle Button when closed */}
+      {!isOpen && (
+        <button
+          onClick={onToggle}
+          className="fixed top-14 left-4 z-[150] w-12 h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all hover:scale-105"
+          title="Otvoriť editor"
+        >
+          <PanelLeftOpen className="w-6 h-6" />
+        </button>
+      )}
+    </>
+  );
+}
+
+// Inline Section Content Editor
+function SectionContentEditorInline({ section, update }: { section: ShopSection; update: (key: string, value: any) => void }) {
+  const s = section.settings || {};
+  
+  switch (section.type) {
+    case 'hero-slider': case 'hero-banner':
+      return (
+        <>
+          <EditorField label="Nadpis" value={s.title || ''} onChange={(v) => update('title', v)} />
+          <EditorField label="Podnadpis" value={s.subtitle || ''} onChange={(v) => update('subtitle', v)} multiline />
+          <EditorField label="Text tlačidla" value={s.buttonText || ''} onChange={(v) => update('buttonText', v)} />
+          <EditorField label="Link" value={s.buttonLink || ''} onChange={(v) => update('buttonLink', v)} />
+        </>
+      );
+    case 'header':
+      return (
+        <>
+          <EditorField label="Logo text" value={s.logoText || ''} onChange={(v) => update('logoText', v)} />
+          <EditorToggle label="Vyhľadávanie" checked={s.showSearch !== false} onChange={(v) => update('showSearch', v)} />
+          <EditorToggle label="Košík" checked={s.showCart !== false} onChange={(v) => update('showCart', v)} />
+          <EditorToggle label="Sticky header" checked={s.sticky !== false} onChange={(v) => update('sticky', v)} />
+        </>
+      );
+    case 'featured-products': case 'product-grid':
+      return (
+        <>
+          <EditorField label="Nadpis" value={s.title || ''} onChange={(v) => update('title', v)} />
+          <EditorField label="Podnadpis" value={s.subtitle || ''} onChange={(v) => update('subtitle', v)} />
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-2">Počet produktov</label>
+            <input type="number" min={1} max={20} value={s.count || 8} onChange={(e) => update('count', parseInt(e.target.value))} className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+        </>
+      );
+    case 'newsletter':
+      return (
+        <>
+          <EditorField label="Nadpis" value={s.title || ''} onChange={(v) => update('title', v)} />
+          <EditorField label="Popis" value={s.description || ''} onChange={(v) => update('description', v)} multiline />
+          <EditorField label="Text tlačidla" value={s.buttonText || ''} onChange={(v) => update('buttonText', v)} />
+        </>
+      );
+    default:
+      return <div className="text-center text-gray-500 py-6 text-sm">Editor pre túto sekciu bude čoskoro</div>;
+  }
+}
+
+// Inline Section Style Editor
+function SectionStyleEditorInline({ section, update }: { section: ShopSection; update: (key: string, value: any) => void }) {
+  const s = section.settings || {};
+  return (
+    <>
+      <EditorColor label="Farba pozadia" value={s.backgroundColor || '#ffffff'} onChange={(v) => update('backgroundColor', v)} />
+      <EditorColor label="Farba textu" value={s.textColor || '#000000'} onChange={(v) => update('textColor', v)} />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-2">Padding Y</label>
+          <input type="number" value={s.paddingY || 48} onChange={(e) => update('paddingY', parseInt(e.target.value))} className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-2">Padding X</label>
+          <input type="number" value={s.paddingX || 16} onChange={(e) => update('paddingX', parseInt(e.target.value))} className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white" />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Helper components
+function EditorField({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-2">{label}</label>
+      {multiline ? (
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white resize-none focus:outline-none focus:border-blue-500" />
+      ) : (
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500" />
+      )}
+    </div>
+  );
+}
+
+function EditorColor({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-2">{label}</label>
+      <div className="flex gap-2">
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-12 h-10 rounded-lg cursor-pointer border border-slate-700 bg-transparent" />
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white font-mono focus:outline-none focus:border-blue-500" />
+      </div>
+    </div>
+  );
+}
+
+function EditorToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-sm text-gray-300">{label}</span>
+      <button onClick={() => onChange(!checked)} className={`w-10 h-6 rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}>
+        <div className={`w-4 h-4 bg-white rounded-full transform transition-transform mx-1 ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN STORE PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function StorePage() {
   const params = useParams();
-  const searchParams = useSearchParams();
-  const isEditMode = searchParams.get('edit') === 'true' || searchParams.get('edit') === 'preview';
+  const router = useRouter();
   const editor = useEditor();
   const cart = useCart();
-  const { shopSettings, toggleSection, moveSection, removeSection, duplicateSection, updateSectionSettings } = editor;
+  const { shopSettings } = editor;
   const { theme, sections } = shopSettings;
   const sortedSections = [...sections].sort((a, b) => a.order - b.order).filter(s => s.enabled);
+  const allSections = [...sections].sort((a, b) => a.order - b.order);
 
-  // Inline editor state
+  // User & Auth state
+  const [user, setUser] = useState<any>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  
+  // Editor state
+  const [isEditing, setIsEditing] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<ShopSection | null>(null);
-  const [activeTab, setActiveTab] = useState<'content' | 'style'>('content');
+
+  // Demo stats
+  const [stats] = useState({ revenue: 2847, orders: 48, visitors: 1284 });
+
+  // Check if user is logged in and is owner
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      setUser(parsed);
+      // Check if user owns this shop (demo check)
+      setIsOwner(true); // In real app: check if parsed.shopSlug === params.slug
+    }
+  }, [params.slug]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    setUser(null);
+    setIsOwner(false);
+    setIsEditing(false);
+    router.refresh();
+  };
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      setIsEditing(false);
+      setEditorOpen(false);
+      setSelectedSection(null);
+    } else {
+      setIsEditing(true);
+      setEditorOpen(true);
+    }
+  };
 
   const handleAddToCart = (product: any) => {
     cart.addItem({ id: product.id, name: product.name, price: product.price, image: product.images?.[0] });
@@ -748,69 +1275,56 @@ export default function StorePage() {
     }
   };
 
-  // Get all sections for editor (including disabled)
-  const allSections = [...sections].sort((a, b) => a.order - b.order);
+  // Top offset for admin bar
+  const topOffset = isOwner ? 40 : 0;
 
   return (
     <div style={{ fontFamily: theme.fontFamily, backgroundColor: theme.backgroundColor, color: theme.textColor }}>
-      {/* Edit Mode Top Bar */}
-      {isEditMode && (
-        <div className="fixed top-0 left-0 right-0 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between px-4 z-[100] shadow-lg">
-          <div className="flex items-center gap-3">
-            <Layers className="w-5 h-5" />
-            <span className="font-semibold">Režim úprav</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {editor.hasUnsavedChanges && (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs">
-                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                Neuložené zmeny
-              </span>
-            )}
-            <button
-              onClick={() => editor.saveChanges()}
-              disabled={!editor.hasUnsavedChanges}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                editor.hasUnsavedChanges 
-                  ? 'bg-white text-blue-600 hover:bg-gray-100' 
-                  : 'bg-white/20 text-white/60 cursor-not-allowed'
-              }`}
-            >
-              <Save className="w-4 h-4" />
-              Uložiť
-            </button>
-            <Link 
-              href="/dashboard/shop-builder" 
-              className="flex items-center gap-2 px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium"
-            >
-              Pokročilý editor
-            </Link>
-          </div>
-        </div>
+      {/* Admin Bar - only for logged in owners */}
+      {isOwner && user && (
+        <AdminBar 
+          user={user}
+          isEditing={isEditing}
+          onToggleEdit={handleToggleEdit}
+          onLogout={handleLogout}
+          stats={stats}
+        />
+      )}
+
+      {/* Inline Editor Panel */}
+      {isOwner && isEditing && (
+        <InlineEditorPanel
+          isOpen={editorOpen}
+          onToggle={() => setEditorOpen(!editorOpen)}
+          selectedSection={selectedSection}
+          onSelectSection={setSelectedSection}
+          sections={allSections}
+        />
       )}
 
       {/* Main Content */}
-      <div style={{ marginTop: isEditMode ? 48 : 0 }}>
+      <div style={{ marginTop: topOffset, marginLeft: isEditing && editorOpen ? 340 : 0, transition: 'margin-left 0.3s ease' }}>
         {sortedSections.map((section) => (
           <div 
             key={section.id} 
-            className={`relative group ${isEditMode ? 'cursor-pointer' : ''}`}
-            onClick={isEditMode ? () => { setSelectedSection(section); setEditorOpen(true); } : undefined}
+            className={`relative ${isEditing ? 'group cursor-pointer' : ''}`}
+            onClick={isEditing ? () => { setSelectedSection(section); setEditorOpen(true); } : undefined}
           >
-            {/* Section Hover Overlay */}
-            {isEditMode && (
+            {/* Section Highlight on Edit Mode */}
+            {isEditing && (
               <div className={`
                 absolute inset-0 z-10 pointer-events-none transition-all border-2
                 ${selectedSection?.id === section.id 
                   ? 'border-blue-500 bg-blue-500/5' 
-                  : 'border-transparent group-hover:border-blue-400 group-hover:border-dashed group-hover:bg-blue-500/5'
+                  : 'border-transparent group-hover:border-dashed group-hover:border-blue-400 group-hover:bg-blue-500/5'
                 }
               `}>
                 <div className={`
-                  absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded
-                  transition-opacity
+                  absolute top-2 left-2 px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg shadow-lg
+                  transition-opacity flex items-center gap-1.5
                   ${selectedSection?.id === section.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
                 `}>
+                  <span>{SECTION_INFO[section.type]?.icon}</span>
                   {SECTION_INFO[section.type]?.name || section.type}
                 </div>
               </div>
@@ -823,333 +1337,16 @@ export default function StorePage() {
       {/* Cart Sidebar */}
       <CartSidebar theme={theme} freeShippingThreshold={shopSettings.freeShippingThreshold} />
 
-      {/* Floating Edit Button (when not in edit mode) */}
-      {!isEditMode && (
-        <Link
-          href={`/store/${params.slug}?edit=true`}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-2xl flex items-center justify-center transition-all hover:scale-110"
+      {/* Floating Edit Button (when owner but not editing) */}
+      {isOwner && !isEditing && (
+        <button
+          onClick={handleToggleEdit}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-2xl shadow-blue-500/30 flex items-center justify-center transition-all hover:scale-110"
           title="Upraviť stránku"
         >
           <Palette className="w-6 h-6" />
-        </Link>
-      )}
-
-      {/* Inline Editor Sidebar */}
-      {isEditMode && (
-        <>
-          {/* Backdrop */}
-          {editorOpen && (
-            <div 
-              className="fixed inset-0 bg-black/30 z-40 lg:hidden" 
-              onClick={() => setEditorOpen(false)}
-            />
-          )}
-
-          {/* Sidebar */}
-          <div className={`
-            fixed top-12 left-0 h-[calc(100%-48px)] w-80 bg-slate-900 shadow-2xl z-50 
-            transform transition-transform duration-300 flex flex-col
-            ${editorOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}>
-            {/* Header */}
-            <div className="h-14 flex items-center justify-between px-4 border-b border-slate-700">
-              <span className="font-semibold text-white">
-                {selectedSection ? (SECTION_INFO[selectedSection.type]?.name || 'Sekcia') : 'Sekcie'}
-              </span>
-              <button 
-                onClick={() => { 
-                  if (selectedSection) setSelectedSection(null);
-                  else setEditorOpen(false);
-                }}
-                className="p-2 hover:bg-slate-800 rounded-lg text-gray-400 hover:text-white"
-              >
-                {selectedSection ? '← Späť' : <X className="w-5 h-5" />}
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {selectedSection ? (
-                // Section Editor
-                <div className="space-y-4">
-                  {/* Tabs */}
-                  <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
-                    <button
-                      onClick={() => setActiveTab('content')}
-                      className={`flex-1 py-2 text-xs font-medium rounded-md ${
-                        activeTab === 'content' ? 'bg-blue-600 text-white' : 'text-gray-400'
-                      }`}
-                    >
-                      Obsah
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('style')}
-                      className={`flex-1 py-2 text-xs font-medium rounded-md ${
-                        activeTab === 'style' ? 'bg-blue-600 text-white' : 'text-gray-400'
-                      }`}
-                    >
-                      Štýl
-                    </button>
-                  </div>
-
-                  {/* Content based on type */}
-                  {activeTab === 'content' && (
-                    <SectionContentEditor 
-                      section={selectedSection} 
-                      updateSectionSettings={updateSectionSettings}
-                    />
-                  )}
-
-                  {activeTab === 'style' && (
-                    <SectionStyleEditor 
-                      section={selectedSection} 
-                      updateSectionSettings={updateSectionSettings}
-                    />
-                  )}
-
-                  {/* Actions */}
-                  <div className="pt-4 border-t border-slate-700 space-y-2">
-                    <button
-                      onClick={() => toggleSection(selectedSection.id)}
-                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm flex items-center justify-center gap-2"
-                    >
-                      {selectedSection.enabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      {selectedSection.enabled ? 'Skryť sekciu' : 'Zobraziť sekciu'}
-                    </button>
-                    <button
-                      onClick={() => duplicateSection(selectedSection.id)}
-                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm flex items-center justify-center gap-2"
-                    >
-                      <Copy className="w-4 h-4" /> Duplikovať
-                    </button>
-                    <button
-                      onClick={() => {
-                        removeSection(selectedSection.id);
-                        setSelectedSection(null);
-                      }}
-                      className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm flex items-center justify-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" /> Odstrániť
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // Section List
-                <div className="space-y-2">
-                  {allSections.map((section, index) => {
-                    const info = SECTION_INFO[section.type];
-                    return (
-                      <div
-                        key={section.id}
-                        onClick={() => setSelectedSection(section)}
-                        className={`
-                          group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
-                          ${!section.enabled ? 'opacity-50' : ''}
-                          bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500
-                        `}
-                      >
-                        <GripVertical className="w-4 h-4 text-gray-500" />
-                        <span className="text-lg">{info?.icon || '📦'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {info?.name || section.type}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'up'); }}
-                            disabled={index === 0}
-                            className="p-1 hover:bg-slate-600 rounded disabled:opacity-30"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'down'); }}
-                            disabled={index === allSections.length - 1}
-                            className="p-1 hover:bg-slate-600 rounded disabled:opacity-30"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleSection(section.id); }}
-                            className={`p-1 rounded ${section.enabled ? 'text-green-400' : 'text-gray-500'}`}
-                          >
-                            {section.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Toggle Sidebar Button */}
-          <button
-            onClick={() => setEditorOpen(!editorOpen)}
-            className={`
-              fixed bottom-6 z-50 w-14 h-14 rounded-full shadow-2xl
-              flex items-center justify-center transition-all
-              ${editorOpen 
-                ? 'left-[336px] bg-blue-600 hover:bg-blue-500 text-white' 
-                : 'left-6 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200'
-              }
-            `}
-          >
-            {editorOpen ? <X className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
-          </button>
-        </>
+        </button>
       )}
     </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INLINE EDITOR COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function SectionContentEditor({ section, updateSectionSettings }: { 
-  section: ShopSection; 
-  updateSectionSettings: (id: string, settings: any) => void;
-}) {
-  const settings = section.settings || {};
-  const update = (key: string, value: any) => updateSectionSettings(section.id, { [key]: value });
-
-  switch (section.type) {
-    case 'hero-slider':
-    case 'hero-banner':
-      return (
-        <div className="space-y-4">
-          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
-          <EditorInput label="Podnadpis" value={settings.subtitle || ''} onChange={(v) => update('subtitle', v)} />
-          <EditorInput label="Text tlačidla" value={settings.buttonText || ''} onChange={(v) => update('buttonText', v)} />
-          <EditorInput label="Link tlačidla" value={settings.buttonLink || ''} onChange={(v) => update('buttonLink', v)} />
-        </div>
-      );
-
-    case 'announcement-bar':
-      return (
-        <div className="space-y-4">
-          <label className="block text-xs text-gray-400 mb-2">Správy</label>
-          {(settings.messages || []).map((msg: any, i: number) => (
-            <div key={i} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={msg.text || ''}
-                onChange={(e) => {
-                  const msgs = [...(settings.messages || [])];
-                  msgs[i] = { ...msgs[i], text: e.target.value };
-                  update('messages', msgs);
-                }}
-                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-              />
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'header':
-      return (
-        <div className="space-y-4">
-          <EditorInput label="Logo text" value={settings.logoText || ''} onChange={(v) => update('logoText', v)} />
-          <EditorCheckbox label="Vyhľadávanie" checked={settings.showSearch !== false} onChange={(v) => update('showSearch', v)} />
-          <EditorCheckbox label="Košík" checked={settings.showCart !== false} onChange={(v) => update('showCart', v)} />
-          <EditorCheckbox label="Sticky" checked={settings.sticky !== false} onChange={(v) => update('sticky', v)} />
-        </div>
-      );
-
-    case 'featured-products':
-    case 'product-grid':
-      return (
-        <div className="space-y-4">
-          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
-          <EditorInput label="Podnadpis" value={settings.subtitle || ''} onChange={(v) => update('subtitle', v)} />
-          <div>
-            <label className="block text-xs text-gray-400 mb-2">Počet produktov</label>
-            <input
-              type="number" min={1} max={20}
-              value={settings.count || 8}
-              onChange={(e) => update('count', parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-            />
-          </div>
-        </div>
-      );
-
-    case 'newsletter':
-      return (
-        <div className="space-y-4">
-          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
-          <EditorInput label="Popis" value={settings.description || ''} onChange={(v) => update('description', v)} multiline />
-          <EditorInput label="Text tlačidla" value={settings.buttonText || ''} onChange={(v) => update('buttonText', v)} />
-        </div>
-      );
-
-    default:
-      return (
-        <div className="text-center text-gray-400 py-8">
-          <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Kliknite na sekciu pre úpravu</p>
-        </div>
-      );
-  }
-}
-
-function SectionStyleEditor({ section, updateSectionSettings }: { 
-  section: ShopSection;
-  updateSectionSettings: (id: string, settings: any) => void;
-}) {
-  const settings = section.settings || {};
-  const update = (key: string, value: any) => updateSectionSettings(section.id, { [key]: value });
-
-  return (
-    <div className="space-y-4">
-      <EditorColor label="Pozadie" value={settings.backgroundColor || '#ffffff'} onChange={(v) => update('backgroundColor', v)} />
-      <EditorColor label="Text" value={settings.textColor || '#000000'} onChange={(v) => update('textColor', v)} />
-      <div>
-        <label className="block text-xs text-gray-400 mb-2">Padding (px)</label>
-        <div className="grid grid-cols-2 gap-2">
-          <input type="number" placeholder="Y" value={settings.paddingY || 48} onChange={(e) => update('paddingY', parseInt(e.target.value))} className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
-          <input type="number" placeholder="X" value={settings.paddingX || 16} onChange={(e) => update('paddingX', parseInt(e.target.value))} className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EditorInput({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean }) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-2">{label}</label>
-      {multiline ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white resize-none" />
-      ) : (
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
-      )}
-    </div>
-  );
-}
-
-function EditorColor({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-2">{label}</label>
-      <div className="flex gap-2">
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0" />
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white font-mono" />
-      </div>
-    </div>
-  );
-}
-
-function EditorCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex items-center gap-3 cursor-pointer">
-      <div onClick={() => onChange(!checked)} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'border-slate-600'}`}>
-        {checked && <Check className="w-3 h-3 text-white" />}
-      </div>
-      <span className="text-sm text-gray-300">{label}</span>
-    </label>
   );
 }
