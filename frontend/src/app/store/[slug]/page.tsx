@@ -7,8 +7,10 @@ import {
   Star, Truck, Shield, RotateCcw, Headphones, Plus, Minus, Check, 
   Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, Clock,
   Play, Pause, ChevronDown, ChevronUp, Send, Quote, Sparkles, ArrowRight,
-  CreditCard, Smartphone, AlertCircle, ExternalLink, Eye, Package
+  CreditCard, Smartphone, AlertCircle, ExternalLink, Eye, Package,
+  Palette, Save, Layers, GripVertical, EyeOff, Trash2, Copy, Settings
 } from 'lucide-react';
+import { SECTION_INFO } from '@/lib/store';
 import { useCart, useEditor, demoProducts, formatPrice, calculateDiscount, ShopSection, ShopTheme } from '@/lib/store';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -709,12 +711,17 @@ function CartSidebar({ theme, freeShippingThreshold }: { theme: ShopTheme; freeS
 export default function StorePage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const isEditMode = searchParams.get('edit') === 'preview';
+  const isEditMode = searchParams.get('edit') === 'true' || searchParams.get('edit') === 'preview';
   const editor = useEditor();
   const cart = useCart();
-  const { shopSettings } = editor;
+  const { shopSettings, toggleSection, moveSection, removeSection, duplicateSection, updateSectionSettings } = editor;
   const { theme, sections } = shopSettings;
   const sortedSections = [...sections].sort((a, b) => a.order - b.order).filter(s => s.enabled);
+
+  // Inline editor state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<ShopSection | null>(null);
+  const [activeTab, setActiveTab] = useState<'content' | 'style'>('content');
 
   const handleAddToCart = (product: any) => {
     cart.addItem({ id: product.id, name: product.name, price: product.price, image: product.images?.[0] });
@@ -741,17 +748,408 @@ export default function StorePage() {
     }
   };
 
+  // Get all sections for editor (including disabled)
+  const allSections = [...sections].sort((a, b) => a.order - b.order);
+
   return (
     <div style={{ fontFamily: theme.fontFamily, backgroundColor: theme.backgroundColor, color: theme.textColor }}>
+      {/* Edit Mode Top Bar */}
       {isEditMode && (
-        <div className="fixed top-0 left-0 right-0 h-10 bg-blue-600 text-white flex items-center justify-center gap-2 z-[100] text-sm">
-          <Eye className="w-4 h-4" /> Režim náhľadu <span className="mx-2">|</span> <Link href="/dashboard/shop-builder" className="underline">Otvoriť editor</Link>
+        <div className="fixed top-0 left-0 right-0 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between px-4 z-[100] shadow-lg">
+          <div className="flex items-center gap-3">
+            <Layers className="w-5 h-5" />
+            <span className="font-semibold">Režim úprav</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {editor.hasUnsavedChanges && (
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs">
+                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                Neuložené zmeny
+              </span>
+            )}
+            <button
+              onClick={() => editor.saveChanges()}
+              disabled={!editor.hasUnsavedChanges}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                editor.hasUnsavedChanges 
+                  ? 'bg-white text-blue-600 hover:bg-gray-100' 
+                  : 'bg-white/20 text-white/60 cursor-not-allowed'
+              }`}
+            >
+              <Save className="w-4 h-4" />
+              Uložiť
+            </button>
+            <Link 
+              href="/dashboard/shop-builder" 
+              className="flex items-center gap-2 px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium"
+            >
+              Pokročilý editor
+            </Link>
+          </div>
         </div>
       )}
-      <div style={{ marginTop: isEditMode ? 40 : 0 }}>
-        {sortedSections.map((section) => <div key={section.id}>{renderSection(section)}</div>)}
+
+      {/* Main Content */}
+      <div style={{ marginTop: isEditMode ? 48 : 0 }}>
+        {sortedSections.map((section) => (
+          <div 
+            key={section.id} 
+            className={`relative group ${isEditMode ? 'cursor-pointer' : ''}`}
+            onClick={isEditMode ? () => { setSelectedSection(section); setEditorOpen(true); } : undefined}
+          >
+            {/* Section Hover Overlay */}
+            {isEditMode && (
+              <div className={`
+                absolute inset-0 z-10 pointer-events-none transition-all border-2
+                ${selectedSection?.id === section.id 
+                  ? 'border-blue-500 bg-blue-500/5' 
+                  : 'border-transparent group-hover:border-blue-400 group-hover:border-dashed group-hover:bg-blue-500/5'
+                }
+              `}>
+                <div className={`
+                  absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded
+                  transition-opacity
+                  ${selectedSection?.id === section.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                `}>
+                  {SECTION_INFO[section.type]?.name || section.type}
+                </div>
+              </div>
+            )}
+            {renderSection(section)}
+          </div>
+        ))}
       </div>
+
+      {/* Cart Sidebar */}
       <CartSidebar theme={theme} freeShippingThreshold={shopSettings.freeShippingThreshold} />
+
+      {/* Floating Edit Button (when not in edit mode) */}
+      {!isEditMode && (
+        <Link
+          href={`/store/${params.slug}?edit=true`}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-2xl flex items-center justify-center transition-all hover:scale-110"
+          title="Upraviť stránku"
+        >
+          <Palette className="w-6 h-6" />
+        </Link>
+      )}
+
+      {/* Inline Editor Sidebar */}
+      {isEditMode && (
+        <>
+          {/* Backdrop */}
+          {editorOpen && (
+            <div 
+              className="fixed inset-0 bg-black/30 z-40 lg:hidden" 
+              onClick={() => setEditorOpen(false)}
+            />
+          )}
+
+          {/* Sidebar */}
+          <div className={`
+            fixed top-12 left-0 h-[calc(100%-48px)] w-80 bg-slate-900 shadow-2xl z-50 
+            transform transition-transform duration-300 flex flex-col
+            ${editorOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
+            {/* Header */}
+            <div className="h-14 flex items-center justify-between px-4 border-b border-slate-700">
+              <span className="font-semibold text-white">
+                {selectedSection ? (SECTION_INFO[selectedSection.type]?.name || 'Sekcia') : 'Sekcie'}
+              </span>
+              <button 
+                onClick={() => { 
+                  if (selectedSection) setSelectedSection(null);
+                  else setEditorOpen(false);
+                }}
+                className="p-2 hover:bg-slate-800 rounded-lg text-gray-400 hover:text-white"
+              >
+                {selectedSection ? '← Späť' : <X className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedSection ? (
+                // Section Editor
+                <div className="space-y-4">
+                  {/* Tabs */}
+                  <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveTab('content')}
+                      className={`flex-1 py-2 text-xs font-medium rounded-md ${
+                        activeTab === 'content' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                      }`}
+                    >
+                      Obsah
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('style')}
+                      className={`flex-1 py-2 text-xs font-medium rounded-md ${
+                        activeTab === 'style' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                      }`}
+                    >
+                      Štýl
+                    </button>
+                  </div>
+
+                  {/* Content based on type */}
+                  {activeTab === 'content' && (
+                    <SectionContentEditor 
+                      section={selectedSection} 
+                      updateSectionSettings={updateSectionSettings}
+                    />
+                  )}
+
+                  {activeTab === 'style' && (
+                    <SectionStyleEditor 
+                      section={selectedSection} 
+                      updateSectionSettings={updateSectionSettings}
+                    />
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-slate-700 space-y-2">
+                    <button
+                      onClick={() => toggleSection(selectedSection.id)}
+                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm flex items-center justify-center gap-2"
+                    >
+                      {selectedSection.enabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {selectedSection.enabled ? 'Skryť sekciu' : 'Zobraziť sekciu'}
+                    </button>
+                    <button
+                      onClick={() => duplicateSection(selectedSection.id)}
+                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm flex items-center justify-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" /> Duplikovať
+                    </button>
+                    <button
+                      onClick={() => {
+                        removeSection(selectedSection.id);
+                        setSelectedSection(null);
+                      }}
+                      className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" /> Odstrániť
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Section List
+                <div className="space-y-2">
+                  {allSections.map((section, index) => {
+                    const info = SECTION_INFO[section.type];
+                    return (
+                      <div
+                        key={section.id}
+                        onClick={() => setSelectedSection(section)}
+                        className={`
+                          group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
+                          ${!section.enabled ? 'opacity-50' : ''}
+                          bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500
+                        `}
+                      >
+                        <GripVertical className="w-4 h-4 text-gray-500" />
+                        <span className="text-lg">{info?.icon || '📦'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">
+                            {info?.name || section.type}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'up'); }}
+                            disabled={index === 0}
+                            className="p-1 hover:bg-slate-600 rounded disabled:opacity-30"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'down'); }}
+                            disabled={index === allSections.length - 1}
+                            className="p-1 hover:bg-slate-600 rounded disabled:opacity-30"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleSection(section.id); }}
+                            className={`p-1 rounded ${section.enabled ? 'text-green-400' : 'text-gray-500'}`}
+                          >
+                            {section.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Toggle Sidebar Button */}
+          <button
+            onClick={() => setEditorOpen(!editorOpen)}
+            className={`
+              fixed bottom-6 z-50 w-14 h-14 rounded-full shadow-2xl
+              flex items-center justify-center transition-all
+              ${editorOpen 
+                ? 'left-[336px] bg-blue-600 hover:bg-blue-500 text-white' 
+                : 'left-6 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200'
+              }
+            `}
+          >
+            {editorOpen ? <X className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
+          </button>
+        </>
+      )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INLINE EDITOR COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function SectionContentEditor({ section, updateSectionSettings }: { 
+  section: ShopSection; 
+  updateSectionSettings: (id: string, settings: any) => void;
+}) {
+  const settings = section.settings || {};
+  const update = (key: string, value: any) => updateSectionSettings(section.id, { [key]: value });
+
+  switch (section.type) {
+    case 'hero-slider':
+    case 'hero-banner':
+      return (
+        <div className="space-y-4">
+          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
+          <EditorInput label="Podnadpis" value={settings.subtitle || ''} onChange={(v) => update('subtitle', v)} />
+          <EditorInput label="Text tlačidla" value={settings.buttonText || ''} onChange={(v) => update('buttonText', v)} />
+          <EditorInput label="Link tlačidla" value={settings.buttonLink || ''} onChange={(v) => update('buttonLink', v)} />
+        </div>
+      );
+
+    case 'announcement-bar':
+      return (
+        <div className="space-y-4">
+          <label className="block text-xs text-gray-400 mb-2">Správy</label>
+          {(settings.messages || []).map((msg: any, i: number) => (
+            <div key={i} className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={msg.text || ''}
+                onChange={(e) => {
+                  const msgs = [...(settings.messages || [])];
+                  msgs[i] = { ...msgs[i], text: e.target.value };
+                  update('messages', msgs);
+                }}
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+              />
+            </div>
+          ))}
+        </div>
+      );
+
+    case 'header':
+      return (
+        <div className="space-y-4">
+          <EditorInput label="Logo text" value={settings.logoText || ''} onChange={(v) => update('logoText', v)} />
+          <EditorCheckbox label="Vyhľadávanie" checked={settings.showSearch !== false} onChange={(v) => update('showSearch', v)} />
+          <EditorCheckbox label="Košík" checked={settings.showCart !== false} onChange={(v) => update('showCart', v)} />
+          <EditorCheckbox label="Sticky" checked={settings.sticky !== false} onChange={(v) => update('sticky', v)} />
+        </div>
+      );
+
+    case 'featured-products':
+    case 'product-grid':
+      return (
+        <div className="space-y-4">
+          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
+          <EditorInput label="Podnadpis" value={settings.subtitle || ''} onChange={(v) => update('subtitle', v)} />
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Počet produktov</label>
+            <input
+              type="number" min={1} max={20}
+              value={settings.count || 8}
+              onChange={(e) => update('count', parseInt(e.target.value))}
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+            />
+          </div>
+        </div>
+      );
+
+    case 'newsletter':
+      return (
+        <div className="space-y-4">
+          <EditorInput label="Nadpis" value={settings.title || ''} onChange={(v) => update('title', v)} />
+          <EditorInput label="Popis" value={settings.description || ''} onChange={(v) => update('description', v)} multiline />
+          <EditorInput label="Text tlačidla" value={settings.buttonText || ''} onChange={(v) => update('buttonText', v)} />
+        </div>
+      );
+
+    default:
+      return (
+        <div className="text-center text-gray-400 py-8">
+          <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Kliknite na sekciu pre úpravu</p>
+        </div>
+      );
+  }
+}
+
+function SectionStyleEditor({ section, updateSectionSettings }: { 
+  section: ShopSection;
+  updateSectionSettings: (id: string, settings: any) => void;
+}) {
+  const settings = section.settings || {};
+  const update = (key: string, value: any) => updateSectionSettings(section.id, { [key]: value });
+
+  return (
+    <div className="space-y-4">
+      <EditorColor label="Pozadie" value={settings.backgroundColor || '#ffffff'} onChange={(v) => update('backgroundColor', v)} />
+      <EditorColor label="Text" value={settings.textColor || '#000000'} onChange={(v) => update('textColor', v)} />
+      <div>
+        <label className="block text-xs text-gray-400 mb-2">Padding (px)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <input type="number" placeholder="Y" value={settings.paddingY || 48} onChange={(e) => update('paddingY', parseInt(e.target.value))} className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
+          <input type="number" placeholder="X" value={settings.paddingX || 16} onChange={(e) => update('paddingX', parseInt(e.target.value))} className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditorInput({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-400 mb-2">{label}</label>
+      {multiline ? (
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white resize-none" />
+      ) : (
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white" />
+      )}
+    </div>
+  );
+}
+
+function EditorColor({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-400 mb-2">{label}</label>
+      <div className="flex gap-2">
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0" />
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white font-mono" />
+      </div>
+    </div>
+  );
+}
+
+function EditorCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer">
+      <div onClick={() => onChange(!checked)} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'border-slate-600'}`}>
+        {checked && <Check className="w-3 h-3 text-white" />}
+      </div>
+      <span className="text-sm text-gray-300">{label}</span>
+    </label>
   );
 }
