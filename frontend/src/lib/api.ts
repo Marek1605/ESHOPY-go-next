@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// API CLIENT - S OPRAVOU URL DUPLIKÁCIE
+// API CLIENT - OPRAVA URL DUPLIKÁCIE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // OPRAVA: Správne spracovanie URL - zabezpečí že vždy končí na /api/v1
@@ -59,7 +59,7 @@ class ApiClient {
     if (response.status === 401) {
       this.clearToken();
       if (typeof window !== 'undefined') {
-        window.location.href = '/admin/login';
+        window.location.href = '/login';
       }
     }
 
@@ -293,81 +293,3 @@ class ApiClient {
 
 export const api = new ApiClient();
 export default api;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ADDITIONAL EXPORTS FOR COMPATIBILITY
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// TokenManager for dashboard/layout.tsx
-export const TokenManager = {
-  getToken: () => typeof window !== 'undefined' ? localStorage.getItem('token') : null,
-  setToken: (token: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-    }
-  },
-  removeToken: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-    }
-  },
-  getUser: () => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    }
-    return null;
-  },
-  setUser: (user: any) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(user));
-    }
-  },
-  isAuthenticated: () => !!TokenManager.getToken(),
-  getCurrentShop: (): Shop | null => {
-    if (typeof window !== 'undefined') {
-      const shop = localStorage.getItem('currentShop');
-      return shop ? JSON.parse(shop) : null;
-    }
-    return null;
-  },
-  setCurrentShop: (shop: Shop | null) => {
-    if (typeof window !== 'undefined') {
-      if (shop) {
-        localStorage.setItem('currentShop', JSON.stringify(shop));
-      } else {
-        localStorage.removeItem('currentShop');
-      }
-    }
-  },
-};
-
-// Shop interface
-export interface Shop {
-  id: string;
-  name: string;
-  slug: string;
-  domain?: string;
-  logo?: string;
-  description?: string;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// AuthAPI for register/page.tsx
-export const AuthAPI = {
-  login: async (email: string, password: string) => {
-    return api.login(email, password);
-  },
-  register: async (email: string, password: string, name: string) => {
-    return api.register(email, password, name);
-  },
-  logout: () => {
-    api.clearToken();
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user');
-      localStorage.removeItem('refresh_token');
-    }
-  },
-};

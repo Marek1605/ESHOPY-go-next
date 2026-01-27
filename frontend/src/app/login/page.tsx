@@ -17,13 +17,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // OPRAVA: Použitie api clienta namiesto priameho fetch
+      // OPRAVA: Použitie api.login() namiesto priameho fetch - správne URL handling
       const data = await api.login(email, password);
       localStorage.setItem('user', JSON.stringify(data.user));
       toast.success('Prihlásený!');
-      router.push(data.user.role === 'superadmin' ? '/admin' : '/dashboard');
+      router.push(data.user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
-      console.error('Login error:', err);
       toast.error(err.message || 'Chyba prihlásenia');
     } finally {
       setLoading(false);
