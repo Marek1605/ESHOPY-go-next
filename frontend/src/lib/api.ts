@@ -324,6 +324,22 @@ export const TokenManager = {
     }
   },
   isAuthenticated: () => !!TokenManager.getToken(),
+  getCurrentShop: (): Shop | null => {
+    if (typeof window !== 'undefined') {
+      const shop = localStorage.getItem('currentShop');
+      return shop ? JSON.parse(shop) : null;
+    }
+    return null;
+  },
+  setCurrentShop: (shop: Shop | null) => {
+    if (typeof window !== 'undefined') {
+      if (shop) {
+        localStorage.setItem('currentShop', JSON.stringify(shop));
+      } else {
+        localStorage.removeItem('currentShop');
+      }
+    }
+  },
 };
 
 // Shop interface
