@@ -1352,3 +1352,4 @@ export default function StorePage() {
     </div>
   );
 }
+// v8 fix
