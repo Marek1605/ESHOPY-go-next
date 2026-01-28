@@ -1208,28 +1208,30 @@ export default function StorePage() {
   const sortedSections = [...sections].sort((a, b) => a.order - b.order).filter(s => s.enabled);
   const allSections = [...sections].sort((a, b) => a.order - b.order);
 
-  // User & Auth state
-  const [user, setUser] = useState<any>(null);
-  const [isOwner, setIsOwner] = useState(false);
+  // User & Auth state - DEMO: vždy zobrazený Admin Bar
+  const [user, setUser] = useState<any>({ name: 'Demo User', email: 'demo@eshopbuilder.sk' });
+  const [isOwner, setIsOwner] = useState(true); // DEMO: vždy true
   
   // Editor state
   const [isEditing, setIsEditing] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<ShopSection | null>(null);
 
-  // Demo stats
+  // Demo stats - reálne by sa tiahli z API
   const [stats] = useState({ revenue: 2847, orders: 48, visitors: 1284 });
 
-  // Check if user is logged in and is owner
+  // V reálnej app by sa tu kontroloval localStorage
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      const parsed = JSON.parse(userData);
-      setUser(parsed);
-      // Check if user owns this shop (demo check)
-      setIsOwner(true); // In real app: check if parsed.shopSlug === params.slug
+      try {
+        const parsed = JSON.parse(userData);
+        setUser(parsed);
+      } catch (e) {
+        console.log('User parse error');
+      }
     }
-  }, [params.slug]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -1350,4 +1352,3 @@ export default function StorePage() {
     </div>
   );
 }
-
