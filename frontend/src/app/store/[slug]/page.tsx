@@ -1,4 +1,5 @@
 'use client';
+console.log("ADMIN BAR v8 LOADED");
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
