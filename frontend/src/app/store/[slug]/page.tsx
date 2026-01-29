@@ -539,7 +539,7 @@ function InlineEditorPanel({
                       <div className="cursor-grab p-1.5 hover:bg-slate-700 rounded-lg opacity-50 group-hover:opacity-100"><GripVertical className="w-4 h-4 text-gray-500" /></div>
                       <div className="flex-1 flex items-center gap-3 min-w-0" onClick={() => onSelectSection(section)}>
                         <span className="text-2xl">{info.icon}</span>
-                        <div className="flex-1 min-w-0"><p className="text-sm font-medium text-white truncate">{info.name}</p>{section.blocks?.length > 0 && <p className="text-[11px] text-gray-500">{section.blocks.length} položiek</p>}</div>
+                        <div className="flex-1 min-w-0"><p className="text-sm font-medium text-white truncate">{info.name}</p>{(section.blocks?.length ?? 0) > 0 && <p className="text-[11px] text-gray-500">{section.blocks?.length} položiek</p>}</div>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={(e) => { e.stopPropagation(); moveSection(section.id, 'up'); }} disabled={index === 0} className="p-1.5 hover:bg-slate-600 rounded-lg disabled:opacity-30"><ChevronUp className="w-4 h-4 text-gray-400" /></button>
