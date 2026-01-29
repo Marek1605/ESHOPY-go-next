@@ -430,7 +430,7 @@ function InlineEditorPanel({
   };
 
   const handleAddSection = (type: string) => {
-    addSection(type);
+    addSection(type as any);
     setAddSectionOpen(false);
   };
 
