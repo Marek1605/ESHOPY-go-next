@@ -402,7 +402,7 @@ function InlineEditorPanel({
   onSave: () => Promise<void>; hasUnsavedChanges: boolean;
 }) {
   const editor = useEditor();
-  const { toggleSection, moveSection, removeSection, duplicateSection, updateSectionSettings, undo, redo, canUndo, canRedo, addSection, shopSettings, updateTheme, updateSettings } = editor;
+  const { toggleSection, moveSection, removeSection, duplicateSection, updateSectionSettings, undo, redo, canUndo, canRedo, addSection, shopSettings, updateTheme, updateShopSettings } = editor;
   const [activeTab, setActiveTab] = useState<'sections' | 'theme' | 'settings'>('sections');
   const [sectionTab, setSectionTab] = useState<'content' | 'style'>('content');
   const [addSectionOpen, setAddSectionOpen] = useState(false);
@@ -594,25 +594,25 @@ function InlineEditorPanel({
               <div>
                 <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Store className="w-4 h-4 text-emerald-400" />Všeobecné</h3>
                 <div className="space-y-3">
-                  <EditorInput label="Názov obchodu" value={shopSettings.shopName || ''} onChange={(v) => updateSettings({ shopName: v })} placeholder="Môj Obchod" />
-                  <EditorInput label="Popis" value={shopSettings.shopDescription || ''} onChange={(v) => updateSettings({ shopDescription: v })} multiline placeholder="Krátky popis..." />
-                  <EditorInput label="Email" value={shopSettings.email || ''} onChange={(v) => updateSettings({ email: v })} placeholder="info@shop.sk" />
-                  <EditorInput label="Telefón" value={shopSettings.phone || ''} onChange={(v) => updateSettings({ phone: v })} placeholder="+421 900 123 456" />
+                  <EditorInput label="Názov obchodu" value={shopSettings.shopName || ''} onChange={(v) => updateShopSettings({ shopName: v })} placeholder="Môj Obchod" />
+                  <EditorInput label="Popis" value={shopSettings.shopDescription || ''} onChange={(v) => updateShopSettings({ shopDescription: v })} multiline placeholder="Krátky popis..." />
+                  <EditorInput label="Email" value={shopSettings.email || ''} onChange={(v) => updateShopSettings({ email: v })} placeholder="info@shop.sk" />
+                  <EditorInput label="Telefón" value={shopSettings.phone || ''} onChange={(v) => updateShopSettings({ phone: v })} placeholder="+421 900 123 456" />
                 </div>
               </div>
               <div>
                 <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Truck className="w-4 h-4 text-blue-400" />Doprava</h3>
-                <EditorNumber label="Doprava zadarmo od (€)" value={shopSettings.freeShippingThreshold || 50} onChange={(v) => updateSettings({ freeShippingThreshold: v })} min={0} max={1000} />
+                <EditorNumber label="Doprava zadarmo od (€)" value={shopSettings.freeShippingThreshold || 50} onChange={(v) => updateShopSettings({ freeShippingThreshold: v })} min={0} max={1000} />
               </div>
               <div>
                 <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Euro className="w-4 h-4 text-yellow-400" />Mena</h3>
-                <EditorSelect label="Mena" value={shopSettings.currency || 'EUR'} onChange={(v) => updateSettings({ currency: v })} options={[{ value: 'EUR', label: '€ Euro (EUR)' }, { value: 'CZK', label: 'Kč Koruna (CZK)' }]} />
+                <EditorSelect label="Mena" value={shopSettings.currency || 'EUR'} onChange={(v) => updateShopSettings({ currency: v })} options={[{ value: 'EUR', label: '€ Euro (EUR)' }, { value: 'CZK', label: 'Kč Koruna (CZK)' }]} />
               </div>
               <div>
                 <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Globe className="w-4 h-4 text-purple-400" />SEO</h3>
                 <div className="space-y-3">
-                  <EditorInput label="Meta titulok" value={shopSettings.metaTitle || ''} onChange={(v) => updateSettings({ metaTitle: v })} placeholder="Titulok stránky" />
-                  <EditorInput label="Meta popis" value={shopSettings.metaDescription || ''} onChange={(v) => updateSettings({ metaDescription: v })} multiline placeholder="Popis pre vyhľadávače..." />
+                  <EditorInput label="Meta titulok" value={shopSettings.metaTitle || ''} onChange={(v) => updateShopSettings({ metaTitle: v })} placeholder="Titulok stránky" />
+                  <EditorInput label="Meta popis" value={shopSettings.metaDescription || ''} onChange={(v) => updateShopSettings({ metaDescription: v })} multiline placeholder="Popis pre vyhľadávače..." />
                 </div>
               </div>
             </div>
