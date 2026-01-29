@@ -584,7 +584,7 @@ function InlineEditorPanel({
               </div>
               <div>
                 <h3 className="font-bold text-white mb-3">Zaoblenie rohov</h3>
-                <EditorSelect label="Štýl" value={shopSettings.theme.borderRadius || 'medium'} onChange={(v) => updateTheme({ borderRadius: v })} options={[{ value: 'none', label: 'Žiadne' }, { value: 'small', label: 'Malé' }, { value: 'medium', label: 'Stredné' }, { value: 'large', label: 'Veľké' }, { value: 'full', label: 'Plné' }]} />
+                <EditorSelect label="Štýl" value={(shopSettings.theme as any).borderRadius || 'medium'} onChange={(v) => updateTheme({ borderRadius: v } as any)} options={[{ value: 'none', label: 'Žiadne' }, { value: 'small', label: 'Malé' }, { value: 'medium', label: 'Stredné' }, { value: 'large', label: 'Veľké' }, { value: 'full', label: 'Plné' }]} />
               </div>
             </div>
           )}
