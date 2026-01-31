@@ -37,7 +37,7 @@ export default function CheckoutPage() {
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return <div className="min-h-screen bg-gray-50" />;
 
-  const cartTotal = cart.getTotal();
+  const cartTotal = cart.total();
   const shippingPrice = checkout.shippingMethod?.price || 0;
   const paymentFee = checkout.paymentMethod?.fee || 0;
   const freeShipping = cartTotal >= 50;
