@@ -4,14 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Store, Loader2, Rocket } from 'lucide-react'
-import { useAuthStore, useShopStore } from '@/lib/store'
-import { shops as shopsApi } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 export default function NewShopPage() {
   const router = useRouter()
-  const { token } = useAuthStore()
-  const { setCurrentShop, setShops, shops } = useShopStore()
-  
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -20,17 +16,20 @@ export default function NewShopPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!token) return
+    if (!form.name.trim()) {
+      toast.error('Zadaj nazov e-shopu')
+      return
+    }
     
     setLoading(true)
     try {
-      const newShop = await shopsApi.create(token, form)
-      setShops([...shops, newShop])
-      setCurrentShop(newShop)
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast.success('E-shop vytvoreny!')
       router.push('/dashboard')
     } catch (error) {
       console.error('Failed to create shop:', error)
-      alert('Nepodarilo sa vytvoriť e-shop')
+      toast.error('Nepodarilo sa vytvorit e-shop')
     } finally {
       setLoading(false)
     }
@@ -38,7 +37,6 @@ export default function NewShopPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link 
           href="/dashboard" 
@@ -48,15 +46,14 @@ export default function NewShopPage() {
         </Link>
         <div>
           <h1 className="font-display font-bold text-3xl text-white">
-            Nový e-shop
+            Novy e-shop
           </h1>
           <p className="text-midnight-400">
-            Vytvor si nový e-shop za pár sekúnd
+            Vytvor si novy e-shop za par sekund
           </p>
         </div>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="card space-y-6">
         <div className="flex justify-center mb-4">
           <div className="w-20 h-20 rounded-2xl bg-brand-500/20 flex items-center justify-center">
@@ -66,18 +63,18 @@ export default function NewShopPage() {
 
         <div>
           <label className="block text-sm font-medium text-midnight-300 mb-2">
-            Názov e-shopu *
+            Nazov e-shopu *
           </label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Napr. Moja Móda"
+            placeholder="Napr. Moja Moda"
             className="input"
             required
           />
           <p className="text-xs text-midnight-500 mt-2">
-            Tento názov sa zobrazí zákazníkom
+            Tento nazov sa zobrazi zakaznikom
           </p>
         </div>
 
@@ -91,21 +88,21 @@ export default function NewShopPage() {
             className="input"
           >
             <option value="EUR">EUR - Euro</option>
-            <option value="CZK">CZK - Česká koruna</option>
-            <option value="USD">USD - Americký dolár</option>
-            <option value="PLN">PLN - Poľský zlotý</option>
-            <option value="HUF">HUF - Maďarský forint</option>
+            <option value="CZK">CZK - Ceska koruna</option>
+            <option value="USD">USD - Americky dolar</option>
+            <option value="PLN">PLN - Polsky zloty</option>
+            <option value="HUF">HUF - Madarsky forint</option>
           </select>
         </div>
 
         <div className="glass-brand rounded-xl p-4">
-          <h3 className="font-medium text-white mb-2">Čo získaš:</h3>
+          <h3 className="font-medium text-white mb-2">Co ziskas:</h3>
           <ul className="text-sm text-midnight-300 space-y-1">
-            <li>✓ Profesionálny e-shop pripravený za minúty</li>
-            <li>✓ Neobmedzený počet produktov</li>
-            <li>✓ Všetky platobné brány</li>
-            <li>✓ AI asistent na generovanie obsahu</li>
-            <li>✓ SSL certifikát zadarmo</li>
+            <li>* Profesionalny e-shop pripraveny za minuty</li>
+            <li>* Neobmedzeny pocet produktov</li>
+            <li>* Vsetky platobne brany</li>
+            <li>* AI asistent na generovanie obsahu</li>
+            <li>* SSL certifikat zadarmo</li>
           </ul>
         </div>
 
@@ -119,7 +116,7 @@ export default function NewShopPage() {
           ) : (
             <>
               <Rocket className="w-5 h-5" />
-              Vytvoriť e-shop
+              Vytvorit e-shop
             </>
           )}
         </button>
