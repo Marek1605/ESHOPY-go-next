@@ -21,11 +21,18 @@ interface Category {
   image?: string;
   icon?: string;
   isActive: boolean;
-  sortOrder: number;
+  order?: number;
+  sortOrder?: number;
   productCount?: number;
+  level?: number;
+  path?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
   attributes?: CategoryAttribute[];
   children?: Category[];
   createdAt?: string;
+  updatedAt?: string;
+}
   updatedAt?: string;
 }
 
