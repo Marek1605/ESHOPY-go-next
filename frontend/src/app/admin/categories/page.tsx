@@ -3,6 +3,37 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // Types defined locally below
 
+// Types
+interface CategoryAttribute {
+  id: string;
+  name: string;
+  type: "text" | "number" | "select" | "boolean";
+  required: boolean;
+  options?: string[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  parentId?: string | null;
+  image?: string;
+  icon?: string;
+  isActive: boolean;
+  sortOrder: number;
+  productCount?: number;
+  attributes?: CategoryAttribute[];
+  children?: Category[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface CategoryTreeNode extends Category {
+  level: number;
+  children: CategoryTreeNode[];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ICONS
 // ═══════════════════════════════════════════════════════════════════════════════
