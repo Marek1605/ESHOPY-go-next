@@ -1021,7 +1021,7 @@ export default function AdminCategoriesPage() {
         updatedAt: new Date().toISOString(),
       };
       setCategories(prev => [...prev, newCategory]);
-      if (addingToParent) setExpanded(prev => new Set([...prev, addingToParent]));
+      if (addingToParent) setExpanded(prev => new Set([...Array.from(prev), addingToParent]));
     }
     setShowForm(false);
     setEditingCategory(null);
