@@ -1,284 +1,173 @@
 'use client';
-import { useState } from 'react';
-import { CreditCard, Building2, Package, Check, ExternalLink, TestTube } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useSettings } from '@/lib/store';
 
-export default function PaymentSettingsPage() {
-  const settings = useSettings();
+import { useState } from 'react';
+import { CreditCard, Save, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export default function PaymentsSettingsPage() {
   const [saving, setSaving] = useState(false);
+  const [payments, setPayments] = useState({
+    comgate: { enabled: false, testMode: true, merchantId: '', secret: '' },
+    gopay: { enabled: false, testMode: true, goId: '', clientId: '', clientSecret: '' },
+    bankTransfer: { enabled: true, iban: '', swift: '', bankName: '' },
+    cod: { enabled: true, fee: 1.50 },
+  });
+
+  const updatePayments = (key: string, value: any) => {
+    setPayments(prev => ({ ...prev, [key]: { ...(prev as any)[key], ...value } }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 1000));
-    toast.success('Nastavenia uložené!');
-    setSaving(false);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Nastavenia platieb ulozene');
+    } catch (error) {
+      toast.error('Chyba pri ukladani');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Platobné metódy</h1>
-          <p className="text-gray-500">Nastavte platobné brány pre váš e-shop</p>
+          <h1 className="text-2xl font-bold text-white">Nastavenia platieb</h1>
+          <p className="text-gray-400">Konfiguracia platobnych metod</p>
         </div>
-        <button onClick={handleSave} disabled={saving} className="btn-primary">
-          {saving ? <span className="spinner" /> : <Check className="w-4 h-4" />}
-          Uložiť zmeny
+        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Ulozit
         </button>
       </div>
 
-      <div className="space-y-6">
-        {/* Comgate */}
-        <div className="card">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Comgate</h3>
-                  <p className="text-sm text-gray-500">Platby kartou, Apple Pay, Google Pay</p>
-                </div>
+      {/* Comgate */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-8 h-8 text-blue-500" />
+            <div>
+              <h3 className="font-semibold text-white">Comgate</h3>
+              <p className="text-sm text-gray-400">Platobna brana Comgate</p>
+            </div>
+          </div>
+          <button onClick={() => updatePayments('comgate', { enabled: !payments.comgate.enabled })} className={`w-12 h-6 rounded-full transition-colors ${payments.comgate.enabled ? 'bg-brand-500' : 'bg-gray-600'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${payments.comgate.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        {payments.comgate.enabled && (
+          <div className="space-y-4 pt-4 border-t border-gray-700">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={payments.comgate.testMode} onChange={(e) => updatePayments('comgate', { testMode: e.target.checked })} className="rounded" />
+              <span className="text-sm text-gray-400">Testovaci rezim</span>
+            </label>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Merchant ID</label>
+                <input type="text" value={payments.comgate.merchantId} onChange={(e) => updatePayments('comgate', { merchantId: e.target.value })} className="input" />
               </div>
-              <div className="flex items-center gap-4">
-                <a href="https://www.comgate.cz" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                  Dokumentácia <ExternalLink className="w-3 h-3" />
-                </a>
-                <button
-                  onClick={() => settings.updatePayments('comgate', { enabled: !settings.payments.comgate.enabled })}
-                  className={`toggle-switch ${settings.payments.comgate.enabled ? 'active' : ''}`}
-                >
-                  <span className="toggle-switch-dot" />
-                </button>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Secret</label>
+                <input type="password" value={payments.comgate.secret} onChange={(e) => updatePayments('comgate', { secret: e.target.value })} className="input" />
               </div>
             </div>
           </div>
-          
-          {settings.payments.comgate.enabled && (
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <TestTube className="w-5 h-5 text-yellow-600" />
-                <label className="flex items-center gap-2 cursor-pointer flex-1">
-                  <input
-                    type="checkbox"
-                    checked={settings.payments.comgate.testMode}
-                    onChange={(e) => settings.updatePayments('comgate', { testMode: e.target.checked })}
-                    className="w-4 h-4 rounded"
-                  />
-                  <span className="text-sm text-yellow-800">Testovacie prostredie (sandbox)</span>
-                </label>
-              </div>
+        )}
+      </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="input-label">Merchant ID *</label>
-                  <input
-                    type="text"
-                    value={settings.payments.comgate.merchantId || ''}
-                    onChange={(e) => settings.updatePayments('comgate', { merchantId: e.target.value })}
-                    className="input-field"
-                    placeholder="Váš Comgate Merchant ID"
-                  />
-                </div>
-                <div>
-                  <label className="input-label">Secret Key *</label>
-                  <input
-                    type="password"
-                    value={settings.payments.comgate.secret || ''}
-                    onChange={(e) => settings.updatePayments('comgate', { secret: e.target.value })}
-                    className="input-field"
-                    placeholder="Váš tajný kľúč"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-2">Webhook URL</h4>
-                <code className="text-sm bg-white px-3 py-2 rounded border block">
-                  https://vas-eshop.sk/api/webhooks/comgate
-                </code>
-              </div>
+      {/* GoPay */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-8 h-8 text-green-500" />
+            <div>
+              <h3 className="font-semibold text-white">GoPay</h3>
+              <p className="text-sm text-gray-400">Platobna brana GoPay</p>
             </div>
-          )}
+          </div>
+          <button onClick={() => updatePayments('gopay', { enabled: !payments.gopay.enabled })} className={`w-12 h-6 rounded-full transition-colors ${payments.gopay.enabled ? 'bg-brand-500' : 'bg-gray-600'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${payments.gopay.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
         </div>
-
-        {/* GoPay */}
-        <div className="card">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">GoPay</h3>
-                  <p className="text-sm text-gray-500">Platby kartou, bankový prevod, Apple Pay</p>
-                </div>
+        {payments.gopay.enabled && (
+          <div className="space-y-4 pt-4 border-t border-gray-700">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={payments.gopay.testMode} onChange={(e) => updatePayments('gopay', { testMode: e.target.checked })} className="rounded" />
+              <span className="text-sm text-gray-400">Testovaci rezim</span>
+            </label>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">GoID</label>
+                <input type="text" value={payments.gopay.goId} onChange={(e) => updatePayments('gopay', { goId: e.target.value })} className="input" />
               </div>
-              <div className="flex items-center gap-4">
-                <a href="https://help.gopay.com" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                  Dokumentácia <ExternalLink className="w-3 h-3" />
-                </a>
-                <button
-                  onClick={() => settings.updatePayments('gopay', { enabled: !settings.payments.gopay.enabled })}
-                  className={`toggle-switch ${settings.payments.gopay.enabled ? 'active' : ''}`}
-                >
-                  <span className="toggle-switch-dot" />
-                </button>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Client ID</label>
+                <input type="text" value={payments.gopay.clientId} onChange={(e) => updatePayments('gopay', { clientId: e.target.value })} className="input" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Client Secret</label>
+                <input type="password" value={payments.gopay.clientSecret} onChange={(e) => updatePayments('gopay', { clientSecret: e.target.value })} className="input" />
               </div>
             </div>
           </div>
-          
-          {settings.payments.gopay.enabled && (
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <TestTube className="w-5 h-5 text-yellow-600" />
-                <label className="flex items-center gap-2 cursor-pointer flex-1">
-                  <input
-                    type="checkbox"
-                    checked={settings.payments.gopay.testMode}
-                    onChange={(e) => settings.updatePayments('gopay', { testMode: e.target.checked })}
-                    className="w-4 h-4 rounded"
-                  />
-                  <span className="text-sm text-yellow-800">Testovacie prostredie (sandbox)</span>
-                </label>
-              </div>
+        )}
+      </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="input-label">GoID *</label>
-                  <input
-                    type="text"
-                    value={settings.payments.gopay.goId || ''}
-                    onChange={(e) => settings.updatePayments('gopay', { goId: e.target.value })}
-                    className="input-field"
-                    placeholder="Váš GoPay GoID"
-                  />
-                </div>
-                <div>
-                  <label className="input-label">Client ID *</label>
-                  <input
-                    type="text"
-                    value={settings.payments.gopay.clientId || ''}
-                    onChange={(e) => settings.updatePayments('gopay', { clientId: e.target.value })}
-                    className="input-field"
-                    placeholder="Client ID"
-                  />
-                </div>
-                <div>
-                  <label className="input-label">Client Secret *</label>
-                  <input
-                    type="password"
-                    value={settings.payments.gopay.clientSecret || ''}
-                    onChange={(e) => settings.updatePayments('gopay', { clientSecret: e.target.value })}
-                    className="input-field"
-                    placeholder="Client Secret"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Bank Transfer */}
-        <div className="card">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-gray-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Bankový prevod</h3>
-                  <p className="text-sm text-gray-500">Platba prevodom na účet</p>
-                </div>
-              </div>
-              <button
-                onClick={() => settings.updatePayments('bankTransfer', { enabled: !settings.payments.bankTransfer.enabled })}
-                className={`toggle-switch ${settings.payments.bankTransfer.enabled ? 'active' : ''}`}
-              >
-                <span className="toggle-switch-dot" />
-              </button>
+      {/* Bank Transfer */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-8 h-8 text-purple-500" />
+            <div>
+              <h3 className="font-semibold text-white">Bankovy prevod</h3>
+              <p className="text-sm text-gray-400">Platba prevodom na ucet</p>
             </div>
           </div>
-          
-          {settings.payments.bankTransfer.enabled && (
-            <div className="p-6 space-y-4">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="input-label">IBAN *</label>
-                  <input
-                    type="text"
-                    value={settings.payments.bankTransfer.iban}
-                    onChange={(e) => settings.updatePayments('bankTransfer', { iban: e.target.value })}
-                    className="input-field"
-                    placeholder="SK89 0900 0000 0001 2345 6789"
-                  />
-                </div>
-                <div>
-                  <label className="input-label">SWIFT/BIC</label>
-                  <input
-                    type="text"
-                    value={settings.payments.bankTransfer.swift}
-                    onChange={(e) => settings.updatePayments('bankTransfer', { swift: e.target.value })}
-                    className="input-field"
-                    placeholder="GIBASKBX"
-                  />
-                </div>
-                <div>
-                  <label className="input-label">Názov banky</label>
-                  <input
-                    type="text"
-                    value={settings.payments.bankTransfer.bankName}
-                    onChange={(e) => settings.updatePayments('bankTransfer', { bankName: e.target.value })}
-                    className="input-field"
-                    placeholder="Slovenská sporiteľňa"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          <button onClick={() => updatePayments('bankTransfer', { enabled: !payments.bankTransfer.enabled })} className={`w-12 h-6 rounded-full transition-colors ${payments.bankTransfer.enabled ? 'bg-brand-500' : 'bg-gray-600'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${payments.bankTransfer.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
         </div>
-
-        {/* Cash on Delivery */}
-        <div className="card">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Dobierka</h3>
-                  <p className="text-sm text-gray-500">Platba pri prevzatí zásielky</p>
-                </div>
-              </div>
-              <button
-                onClick={() => settings.updatePayments('cod', { enabled: !settings.payments.cod.enabled })}
-                className={`toggle-switch ${settings.payments.cod.enabled ? 'active' : ''}`}
-              >
-                <span className="toggle-switch-dot" />
-              </button>
+        {payments.bankTransfer.enabled && (
+          <div className="grid md:grid-cols-3 gap-4 pt-4 border-t border-gray-700">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">IBAN</label>
+              <input type="text" value={payments.bankTransfer.iban} onChange={(e) => updatePayments('bankTransfer', { iban: e.target.value })} className="input" placeholder="SK..." />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">SWIFT/BIC</label>
+              <input type="text" value={payments.bankTransfer.swift} onChange={(e) => updatePayments('bankTransfer', { swift: e.target.value })} className="input" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Nazov banky</label>
+              <input type="text" value={payments.bankTransfer.bankName} onChange={(e) => updatePayments('bankTransfer', { bankName: e.target.value })} className="input" />
             </div>
           </div>
-          
-          {settings.payments.cod.enabled && (
-            <div className="p-6">
-              <div className="max-w-xs">
-                <label className="input-label">Poplatok za dobierku (€)</label>
-                <input
-                  type="number"
-                  step="0.10"
-                  value={settings.payments.cod.fee}
-                  onChange={(e) => settings.updatePayments('cod', { fee: parseFloat(e.target.value) })}
-                  className="input-field"
-                />
-              </div>
+        )}
+      </div>
+
+      {/* COD */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-8 h-8 text-yellow-500" />
+            <div>
+              <h3 className="font-semibold text-white">Dobierka</h3>
+              <p className="text-sm text-gray-400">Platba pri prevzati</p>
             </div>
-          )}
+          </div>
+          <button onClick={() => updatePayments('cod', { enabled: !payments.cod.enabled })} className={`w-12 h-6 rounded-full transition-colors ${payments.cod.enabled ? 'bg-brand-500' : 'bg-gray-600'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${payments.cod.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+          </button>
         </div>
+        {payments.cod.enabled && (
+          <div className="pt-4 border-t border-gray-700">
+            <div className="max-w-xs">
+              <label className="block text-sm text-gray-400 mb-1">Poplatok za dobierku (EUR)</label>
+              <input type="number" step="0.01" value={payments.cod.fee} onChange={(e) => updatePayments('cod', { fee: parseFloat(e.target.value) })} className="input" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
