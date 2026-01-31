@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Category, CategoryTreeNode, CategoryAttribute } from '@/types';
+// Types defined locally below
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ICONS
