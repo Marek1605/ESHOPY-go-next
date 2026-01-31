@@ -33,17 +33,15 @@ interface Category {
   createdAt?: string;
   updatedAt?: string;
 }
-  updatedAt?: string;
-}
 
 interface CategoryTreeNode extends Category {
   level: number;
   children: CategoryTreeNode[];
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // ICONS
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 const Icons = {
   folder: (
@@ -155,44 +153,44 @@ const Icons = {
   ),
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // MOCK DATA
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 const mockCategories: Category[] = [
   {
     id: '1',
     name: 'Elektronika',
     slug: 'elektronika',
-    description: 'Všetka elektronika a spotrebiče',
+    description: 'V�etka elektronika a spotrebice',
     parentId: null,
     image: '/images/categories/elektronika.jpg',
-    icon: '📱',
+    icon: '??',
     isActive: true,
     order: 1,
     productCount: 15420,
     level: 0,
     path: ['1'],
     metaTitle: 'Elektronika | ESHOPY',
-    metaDescription: 'Nakúpte elektroniku za najlepšie ceny',
+    metaDescription: 'Nak�pte elektroniku za najlep�ie ceny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '2',
-    name: 'Mobilné telefóny',
+    name: 'Mobiln� telef�ny',
     slug: 'mobilne-telefony',
-    description: 'Smartfóny a mobilné telefóny',
+    description: 'Smartf�ny a mobiln� telef�ny',
     parentId: '1',
     image: '/images/categories/mobily.jpg',
-    icon: '📱',
+    icon: '??',
     isActive: true,
     order: 1,
     productCount: 3250,
     level: 1,
     path: ['1', '2'],
-    metaTitle: 'Mobilné telefóny | ESHOPY',
-    metaDescription: 'Najlepšie mobilné telefóny',
+    metaTitle: 'Mobiln� telef�ny | ESHOPY',
+    metaDescription: 'Najlep�ie mobiln� telef�ny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -200,7 +198,7 @@ const mockCategories: Category[] = [
     id: '3',
     name: 'Samsung',
     slug: 'samsung',
-    description: 'Mobilné telefóny Samsung',
+    description: 'Mobiln� telef�ny Samsung',
     parentId: '2',
     image: '/images/categories/samsung.jpg',
     icon: '',
@@ -209,8 +207,8 @@ const mockCategories: Category[] = [
     productCount: 450,
     level: 2,
     path: ['1', '2', '3'],
-    metaTitle: 'Samsung telefóny | ESHOPY',
-    metaDescription: 'Samsung Galaxy telefóny',
+    metaTitle: 'Samsung telef�ny | ESHOPY',
+    metaDescription: 'Samsung Galaxy telef�ny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -218,7 +216,7 @@ const mockCategories: Category[] = [
     id: '4',
     name: 'Apple iPhone',
     slug: 'apple-iphone',
-    description: 'Apple iPhone smartfóny',
+    description: 'Apple iPhone smartf�ny',
     parentId: '2',
     image: '/images/categories/iphone.jpg',
     icon: '',
@@ -228,7 +226,7 @@ const mockCategories: Category[] = [
     level: 2,
     path: ['1', '2', '4'],
     metaTitle: 'Apple iPhone | ESHOPY',
-    metaDescription: 'Apple iPhone telefóny',
+    metaDescription: 'Apple iPhone telef�ny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -236,7 +234,7 @@ const mockCategories: Category[] = [
     id: '5',
     name: 'Xiaomi',
     slug: 'xiaomi',
-    description: 'Mobilné telefóny Xiaomi',
+    description: 'Mobiln� telef�ny Xiaomi',
     parentId: '2',
     image: '/images/categories/xiaomi.jpg',
     icon: '',
@@ -245,8 +243,8 @@ const mockCategories: Category[] = [
     productCount: 220,
     level: 2,
     path: ['1', '2', '5'],
-    metaTitle: 'Xiaomi telefóny | ESHOPY',
-    metaDescription: 'Xiaomi telefóny',
+    metaTitle: 'Xiaomi telef�ny | ESHOPY',
+    metaDescription: 'Xiaomi telef�ny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -257,14 +255,14 @@ const mockCategories: Category[] = [
     description: 'Laptopy a notebooky',
     parentId: '1',
     image: '/images/categories/notebooky.jpg',
-    icon: '💻',
+    icon: '??',
     isActive: true,
     order: 2,
     productCount: 2840,
     level: 1,
     path: ['1', '6'],
     metaTitle: 'Notebooky | ESHOPY',
-    metaDescription: 'Notebooky za najlepšie ceny',
+    metaDescription: 'Notebooky za najlep�ie ceny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -272,89 +270,89 @@ const mockCategories: Category[] = [
     id: '7',
     name: 'Gaming notebooky',
     slug: 'gaming-notebooky',
-    description: 'Herné notebooky',
+    description: 'Hern� notebooky',
     parentId: '6',
     image: '/images/categories/gaming.jpg',
-    icon: '🎮',
+    icon: '??',
     isActive: true,
     order: 1,
     productCount: 580,
     level: 2,
     path: ['1', '6', '7'],
     metaTitle: 'Gaming notebooky | ESHOPY',
-    metaDescription: 'Herné notebooky',
+    metaDescription: 'Hern� notebooky',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '8',
-    name: 'Televízory',
+    name: 'Telev�zory',
     slug: 'televizory',
-    description: 'Smart TV a televízory',
+    description: 'Smart TV a telev�zory',
     parentId: '1',
     image: '/images/categories/tv.jpg',
-    icon: '📺',
+    icon: '??',
     isActive: true,
     order: 3,
     productCount: 1250,
     level: 1,
     path: ['1', '8'],
-    metaTitle: 'Televízory | ESHOPY',
-    metaDescription: 'Smart TV televízory',
+    metaTitle: 'Telev�zory | ESHOPY',
+    metaDescription: 'Smart TV telev�zory',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '9',
-    name: 'Domácnosť',
+    name: 'Dom�cnost',
     slug: 'domacnost',
-    description: 'Domáce spotrebiče a potreby',
+    description: 'Dom�ce spotrebice a potreby',
     parentId: null,
     image: '/images/categories/domacnost.jpg',
-    icon: '🏠',
+    icon: '??',
     isActive: true,
     order: 2,
     productCount: 8750,
     level: 0,
     path: ['9'],
-    metaTitle: 'Domácnosť | ESHOPY',
-    metaDescription: 'Všetko pre domácnosť',
+    metaTitle: 'Dom�cnost | ESHOPY',
+    metaDescription: 'V�etko pre dom�cnost',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '10',
-    name: 'Kuchynské spotrebiče',
+    name: 'Kuchynsk� spotrebice',
     slug: 'kuchynske-spotrebice',
-    description: 'Spotrebiče do kuchyne',
+    description: 'Spotrebice do kuchyne',
     parentId: '9',
     image: '/images/categories/kuchyna.jpg',
-    icon: '🍳',
+    icon: '??',
     isActive: true,
     order: 1,
     productCount: 3420,
     level: 1,
     path: ['9', '10'],
-    metaTitle: 'Kuchynské spotrebiče | ESHOPY',
-    metaDescription: 'Spotrebiče do kuchyne',
+    metaTitle: 'Kuchynsk� spotrebice | ESHOPY',
+    metaDescription: 'Spotrebice do kuchyne',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '11',
-    name: 'Šport a outdoor',
+    name: '�port a outdoor',
     slug: 'sport-outdoor',
-    description: 'Športové potreby a outdoor',
+    description: '�portov� potreby a outdoor',
     parentId: null,
     image: '/images/categories/sport.jpg',
-    icon: '⚽',
+    icon: '?',
     isActive: true,
     order: 3,
     productCount: 5230,
     level: 0,
     path: ['11'],
-    metaTitle: 'Šport a outdoor | ESHOPY',
-    metaDescription: 'Športové potreby',
+    metaTitle: '�port a outdoor | ESHOPY',
+    metaDescription: '�portov� potreby',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -365,7 +363,7 @@ const mockCategories: Category[] = [
     description: 'Fitness vybavenie',
     parentId: '11',
     image: '/images/categories/fitness.jpg',
-    icon: '💪',
+    icon: '??',
     isActive: true,
     order: 1,
     productCount: 1850,
@@ -378,9 +376,9 @@ const mockCategories: Category[] = [
   },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
   const categoryMap = new Map<string, CategoryTreeNode>();
@@ -388,7 +386,7 @@ function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
 
   // Create nodes
   categories.forEach(cat => {
-    categoryMap.set(cat.id, { ...cat, children: [] });
+    categoryMap.set(cat.id, { ...cat, children: [], level: cat.level || 0 });
   });
 
   // Build tree
@@ -403,7 +401,7 @@ function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
 
   // Sort children by order
   const sortChildren = (nodes: CategoryTreeNode[]) => {
-    nodes.sort((a, b) => a.order - b.order);
+    nodes.sort((a, b) => (a.order || 0) - (b.order || 0));
     nodes.forEach(node => sortChildren(node.children));
   };
   sortChildren(roots);
@@ -430,9 +428,9 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // CATEGORY TREE ITEM COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 interface CategoryTreeItemProps {
   node: CategoryTreeNode;
@@ -476,10 +474,10 @@ function CategoryTreeItem({
   const [isDragOver, setIsDragOver] = useState(false);
 
   return (
-    <div className={`${isDragging ? 'opacity-50' : ''}`}>
+    <div className={isDragging ? 'opacity-50' : ''}>
       <div
         className={`
-          flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all
+          flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all group
           ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'}
           ${isDragOver ? 'bg-blue-100 border-blue-300' : ''}
           ${!node.isActive ? 'opacity-60' : ''}
@@ -535,13 +533,13 @@ function CategoryTreeItem({
 
         {/* Product count */}
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-          {node.productCount.toLocaleString()}
+          {(node.productCount || 0).toLocaleString()}
         </span>
 
         {/* Status badge */}
         {!node.isActive && (
           <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
-            Neaktívna
+            Neakt�vna
           </span>
         )}
 
@@ -553,7 +551,7 @@ function CategoryTreeItem({
               onToggleActive(node);
             }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title={node.isActive ? 'Deaktivovať' : 'Aktivovať'}
+            title={node.isActive ? 'Deaktivovat' : 'Aktivovat'}
           >
             {node.isActive ? Icons.eye : Icons.eyeOff}
           </button>
@@ -563,7 +561,7 @@ function CategoryTreeItem({
               onAddChild(node.id);
             }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title="Pridať podkategóriu"
+            title="Pridat podkateg�riu"
           >
             {Icons.plus}
           </button>
@@ -573,7 +571,7 @@ function CategoryTreeItem({
               onEdit(node);
             }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title="Upraviť"
+            title="Upravit"
           >
             {Icons.edit}
           </button>
@@ -583,7 +581,7 @@ function CategoryTreeItem({
               onDelete(node);
             }}
             className="p-1.5 rounded hover:bg-red-100 text-gray-500 hover:text-red-600"
-            title="Vymazať"
+            title="Vymazat"
           >
             {Icons.trash}
           </button>
@@ -619,9 +617,9 @@ function CategoryTreeItem({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // CATEGORY FORM MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 interface CategoryFormProps {
   category: Partial<Category> | null;
@@ -658,7 +656,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
 
   const parentPath = formData.parentId
     ? getCategoryPath(categories, formData.parentId).map(c => c.name).join(' > ')
-    : 'Koreňová kategória';
+    : 'Korenov� kateg�ria';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -666,7 +664,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <h2 className="text-xl font-bold text-gray-800">
-            {category?.id ? 'Upraviť kategóriu' : 'Nová kategória'}
+            {category?.id ? 'Upravit kateg�riu' : 'Nov� kateg�ria'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
             {Icons.x}
@@ -679,7 +677,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
             {/* Parent info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-2 text-sm text-blue-700">
-                <span className="font-medium">Nadradená kategória:</span>
+                <span className="font-medium">Nadraden� kateg�ria:</span>
                 <span>{parentPath}</span>
               </div>
             </div>
@@ -687,14 +685,14 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Názov kategórie *
+                N�zov kateg�rie *
               </label>
               <input
                 type="text"
                 value={formData.name || ''}
                 onChange={(e) => handleNameChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="napr. Mobilné telefóny"
+                placeholder="napr. Mobiln� telef�ny"
               />
             </div>
 
@@ -721,7 +719,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                   }}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Generovať
+                  Generovat
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -740,13 +738,13 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                   value={formData.icon || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="📱"
+                  placeholder="??"
                   maxLength={2}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL obrázka
+                  URL obr�zka
                 </label>
                 <input
                   type="text"
@@ -761,14 +759,14 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Popis kategórie
+                Popis kateg�rie
               </label>
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
-                placeholder="Krátky popis kategórie..."
+                placeholder="Kr�tky popis kateg�rie..."
               />
             </div>
 
@@ -786,7 +784,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                     value={formData.metaTitle || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, metaTitle: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Názov pre vyhľadávače"
+                    placeholder="N�zov pre vyhlad�vace"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {(formData.metaTitle || '').length}/60 znakov
@@ -802,7 +800,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                     onChange={(e) => setFormData(prev => ({ ...prev, metaDescription: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={2}
-                    placeholder="Popis pre vyhľadávače"
+                    placeholder="Popis pre vyhlad�vace"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {(formData.metaDescription || '').length}/160 znakov
@@ -823,8 +821,8 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                 <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
               <div>
-                <span className="font-medium text-gray-800">Aktívna kategória</span>
-                <p className="text-xs text-gray-500">Neaktívne kategórie nie sú viditeľné na webe</p>
+                <span className="font-medium text-gray-800">Akt�vna kateg�ria</span>
+                <p className="text-xs text-gray-500">Neakt�vne kateg�rie nie s� viditeln� na webe</p>
               </div>
             </div>
           </div>
@@ -836,14 +834,14 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
             onClick={onClose}
             className="px-6 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors"
           >
-            Zrušiť
+            Zru�it
           </button>
           <button
             onClick={() => onSave(formData)}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             {Icons.save}
-            {category?.id ? 'Uložiť zmeny' : 'Vytvoriť kategóriu'}
+            {category?.id ? 'Ulo�it zmeny' : 'Vytvorit kateg�riu'}
           </button>
         </div>
       </div>
@@ -851,9 +849,9 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // DELETE CONFIRMATION MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 interface DeleteConfirmProps {
   category: Category;
@@ -871,24 +869,24 @@ function DeleteConfirm({ category, childCount, onConfirm, onClose }: DeleteConfi
             <span className="text-red-600">{Icons.trash}</span>
           </div>
           <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
-            Vymazať kategóriu?
+            Vymazat kateg�riu?
           </h3>
           <p className="text-gray-600 text-center mb-4">
-            Naozaj chcete vymazať kategóriu <strong>"{category.name}"</strong>?
+            Naozaj chcete vymazat kateg�riu <strong>&quot;{category.name}&quot;</strong>?
           </p>
           {childCount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
               <p className="text-red-700 text-sm">
-                ⚠️ Táto kategória obsahuje <strong>{childCount}</strong> podkategórií, 
-                ktoré budú tiež vymazané!
+                ?? T�to kateg�ria obsahuje <strong>{childCount}</strong> podkateg�ri�, 
+                ktor� bud� tie� vymazan�!
               </p>
             </div>
           )}
-          {category.productCount > 0 && (
+          {(category.productCount || 0) > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <p className="text-yellow-700 text-sm">
-                ⚠️ V tejto kategórii je <strong>{category.productCount.toLocaleString()}</strong> produktov.
-                Produkty nebudú vymazané, ale stratia priradenie ku kategórii.
+                ?? V tejto kateg�rii je <strong>{(category.productCount || 0).toLocaleString()}</strong> produktov.
+                Produkty nebud� vymazan�, ale stratia priradenie ku kateg�rii.
               </p>
             </div>
           )}
@@ -898,13 +896,13 @@ function DeleteConfirm({ category, childCount, onConfirm, onClose }: DeleteConfi
             onClick={onClose}
             className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors"
           >
-            Zrušiť
+            Zru�it
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
           >
-            Vymazať
+            Vymazat
           </button>
         </div>
       </div>
@@ -912,9 +910,9 @@ function DeleteConfirm({ category, childCount, onConfirm, onClose }: DeleteConfi
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // CATEGORY DETAIL PANEL
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 interface CategoryDetailProps {
   category: Category;
@@ -930,7 +928,7 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
     <div className="bg-white border-l h-full overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-800">Detail kategórie</h2>
+        <h2 className="text-lg font-bold text-gray-800">Detail kateg�rie</h2>
         <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
           {Icons.x}
         </button>
@@ -945,7 +943,7 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
         ) : (
           <div className="aspect-video bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
             {Icons.image}
-            <span className="ml-2">Bez obrázka</span>
+            <span className="ml-2">Bez obr�zka</span>
           </div>
         )}
 
@@ -963,7 +961,7 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
           category.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
         }`}>
           {category.isActive ? Icons.eye : Icons.eyeOff}
-          {category.isActive ? 'Aktívna' : 'Neaktívna'}
+          {category.isActive ? 'Akt�vna' : 'Neakt�vna'}
         </div>
 
         {/* Path */}
@@ -992,12 +990,12 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-blue-50 rounded-xl p-4">
-            <div className="text-2xl font-bold text-blue-700">{category.productCount.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-blue-700">{(category.productCount || 0).toLocaleString()}</div>
             <div className="text-sm text-blue-600">Produktov</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-4">
-            <div className="text-2xl font-bold text-gray-700">{category.level}</div>
-            <div className="text-sm text-gray-600">Úroveň</div>
+            <div className="text-2xl font-bold text-gray-700">{category.level || 0}</div>
+            <div className="text-sm text-gray-600">�roven</div>
           </div>
         </div>
 
@@ -1019,12 +1017,12 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
         {/* Dates */}
         <div className="border-t pt-6 text-sm text-gray-500">
           <div className="flex justify-between mb-2">
-            <span>Vytvorené:</span>
-            <span>{new Date(category.createdAt).toLocaleString('sk-SK')}</span>
+            <span>Vytvoren�:</span>
+            <span>{category.createdAt ? new Date(category.createdAt).toLocaleString('sk-SK') : '-'}</span>
           </div>
           <div className="flex justify-between">
-            <span>Upravené:</span>
-            <span>{new Date(category.updatedAt).toLocaleString('sk-SK')}</span>
+            <span>Upraven�:</span>
+            <span>{category.updatedAt ? new Date(category.updatedAt).toLocaleString('sk-SK') : '-'}</span>
           </div>
         </div>
 
@@ -1035,7 +1033,7 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
             className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
             {Icons.edit}
-            Upraviť
+            Upravit
           </button>
           <button className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             {Icons.link}
@@ -1049,9 +1047,9 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // MAIN PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 
 export default function AdminCategoriesPage() {
   // State
@@ -1081,7 +1079,7 @@ export default function AdminCategoriesPage() {
       if (cat.name.toLowerCase().includes(searchLower) || cat.slug.includes(searchLower)) {
         matchingIds.add(cat.id);
         // Add all ancestors
-        cat.path.forEach(id => matchingIds.add(id));
+        (cat.path || []).forEach(id => matchingIds.add(id));
       }
     });
 
@@ -1202,12 +1200,12 @@ export default function AdminCategoriesPage() {
       // Create new
       const newId = `${Date.now()}`;
       const parent = addingToParent ? categories.find(c => c.id === addingToParent) : null;
-      const level = parent ? parent.level + 1 : 0;
-      const path = parent ? [...parent.path, newId] : [newId];
+      const level = parent ? (parent.level || 0) + 1 : 0;
+      const path = parent ? [...(parent.path || []), newId] : [newId];
       
       const newCategory: Category = {
         id: newId,
-        name: formData.name || 'Nová kategória',
+        name: formData.name || 'Nov� kateg�ria',
         slug: formData.slug || slugify(formData.name || 'nova-kategoria'),
         description: formData.description || '',
         parentId: addingToParent,
@@ -1243,7 +1241,7 @@ export default function AdminCategoriesPage() {
 
     // Don't allow dropping on descendant
     const target = categories.find(c => c.id === targetId);
-    if (target?.path.includes(draggedId)) return;
+    if (target?.path?.includes(draggedId)) return;
 
     // Move category
     setCategories(prev => {
@@ -1252,8 +1250,8 @@ export default function AdminCategoriesPage() {
 
       // Update parent and recalculate path/level
       const newParent = prev.find(c => c.id === targetId);
-      const newLevel = newParent ? newParent.level + 1 : 0;
-      const newPath = newParent ? [...newParent.path, draggedId] : [draggedId];
+      const newLevel = newParent ? (newParent.level || 0) + 1 : 0;
+      const newPath = newParent ? [...(newParent.path || []), draggedId] : [draggedId];
 
       return prev.map(c => {
         if (c.id === draggedId) {
@@ -1278,7 +1276,7 @@ export default function AdminCategoriesPage() {
     total: categories.length,
     active: categories.filter(c => c.isActive).length,
     root: categories.filter(c => !c.parentId).length,
-    products: categories.reduce((sum, c) => sum + c.productCount, 0),
+    products: categories.reduce((sum, c) => sum + (c.productCount || 0), 0),
   }), [categories]);
 
   return (
@@ -1288,8 +1286,8 @@ export default function AdminCategoriesPage() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Správa kategórií</h1>
-              <p className="text-gray-500 text-sm">Organizujte produktové kategórie pomocou drag & drop</p>
+              <h1 className="text-2xl font-bold text-gray-800">Spr�va kateg�ri�</h1>
+              <p className="text-gray-500 text-sm">Organizujte produktov� kateg�rie pomocou drag & drop</p>
             </div>
             <div className="flex items-center gap-3">
               <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm font-medium">
@@ -1305,7 +1303,7 @@ export default function AdminCategoriesPage() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium"
               >
                 {Icons.plus}
-                Nová kategória
+                Nov� kateg�ria
               </button>
             </div>
           </div>
@@ -1317,11 +1315,11 @@ export default function AdminCategoriesPage() {
               <span className="font-semibold text-gray-800">{stats.total}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Aktívne:</span>
+              <span className="text-gray-500">Akt�vne:</span>
               <span className="font-semibold text-green-600">{stats.active}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Hlavné:</span>
+              <span className="text-gray-500">Hlavn�:</span>
               <span className="font-semibold text-gray-800">{stats.root}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -1347,7 +1345,7 @@ export default function AdminCategoriesPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Hľadať kategórie..."
+                placeholder="Hladat kateg�rie..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {search && (
@@ -1366,13 +1364,13 @@ export default function AdminCategoriesPage() {
                 onClick={handleExpandAll}
                 className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >
-                Rozbaliť všetko
+                Rozbalit v�etko
               </button>
               <button
                 onClick={handleCollapseAll}
                 className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >
-                Zbaliť všetko
+                Zbalit v�etko
               </button>
               <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
                 {Icons.refresh}
@@ -1386,22 +1384,22 @@ export default function AdminCategoriesPage() {
               <div className="text-center py-12 text-gray-500">
                 {search ? (
                   <>
-                    <p className="mb-2">Žiadne kategórie nevyhovujú vyhľadávaniu</p>
+                    <p className="mb-2">�iadne kateg�rie nevyhovuj� vyhlad�vaniu</p>
                     <button
                       onClick={() => setSearch('')}
                       className="text-blue-600 hover:underline"
                     >
-                      Vymazať vyhľadávanie
+                      Vymazat vyhlad�vanie
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="mb-4">Zatiaľ nemáte žiadne kategórie</p>
+                    <p className="mb-4">Zatial nem�te �iadne kateg�rie</p>
                     <button
                       onClick={handleAddRoot}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      Vytvoriť prvú kategóriu
+                      Vytvorit prv� kateg�riu
                     </button>
                   </>
                 )}
