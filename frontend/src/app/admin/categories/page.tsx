@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// Types defined locally below
+import React, { useState, useCallback, useMemo } from 'react';
 
 // Types
 interface CategoryAttribute {
@@ -39,10 +38,7 @@ interface CategoryTreeNode extends Category {
   children: CategoryTreeNode[];
 }
 
-// -------------------------------------------------------------------------------
-// ICONS
-// -------------------------------------------------------------------------------
-
+// Icons
 const Icons = {
   folder: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,11 +53,6 @@ const Icons = {
   chevronRight: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  ),
-  chevronDown: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
   ),
   plus: (
@@ -125,12 +116,6 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
     </svg>
   ),
-  settings: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
   link: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -141,11 +126,6 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
     </svg>
   ),
-  move: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-    </svg>
-  ),
   refresh: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -153,44 +133,41 @@ const Icons = {
   ),
 };
 
-// -------------------------------------------------------------------------------
-// MOCK DATA
-// -------------------------------------------------------------------------------
-
+// Mock Data
 const mockCategories: Category[] = [
   {
     id: '1',
     name: 'Elektronika',
     slug: 'elektronika',
-    description: 'Všetka elektronika a spotrebice',
+    description: 'Vsetka elektronika a spotrebice',
     parentId: null,
     image: '/images/categories/elektronika.jpg',
-    icon: '??',
+    icon: '',
     isActive: true,
     order: 1,
     productCount: 15420,
     level: 0,
     path: ['1'],
     metaTitle: 'Elektronika | ESHOPY',
-    metaDescription: 'Nakúpte elektroniku za najlepšie ceny',
+    metaDescription: 'Nakupte elektroniku za najlepsie ceny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '2',
-    name: 'Mobilné telefóny',
+    name: 'Mobilne telefony',
     slug: 'mobilne-telefony',
-    description: 'Smartfóny a mobilné telefóny',
+    description: 'Smartfony a mobilne telefony',
     parentId: '1',
     image: '/images/categories/mobily.jpg',
-    icon: '??',
+    icon: '',
     isActive: true,
     order: 1,
     productCount: 3250,
     level: 1,
     path: ['1', '2'],
-    metaTitle: 'Mobilné telefóny | ESHOPY',
-    metaDescription: 'Najlepšie mobilné telefóny',
+    metaTitle: 'Mobilne telefony | ESHOPY',
+    metaDescription: 'Najlepsie mobilne telefony',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -198,17 +175,13 @@ const mockCategories: Category[] = [
     id: '3',
     name: 'Samsung',
     slug: 'samsung',
-    description: 'Mobilné telefóny Samsung',
+    description: 'Mobilne telefony Samsung',
     parentId: '2',
-    image: '/images/categories/samsung.jpg',
-    icon: '',
     isActive: true,
     order: 1,
     productCount: 450,
     level: 2,
     path: ['1', '2', '3'],
-    metaTitle: 'Samsung telefóny | ESHOPY',
-    metaDescription: 'Samsung Galaxy telefóny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -216,17 +189,13 @@ const mockCategories: Category[] = [
     id: '4',
     name: 'Apple iPhone',
     slug: 'apple-iphone',
-    description: 'Apple iPhone smartfóny',
+    description: 'Apple iPhone smartfony',
     parentId: '2',
-    image: '/images/categories/iphone.jpg',
-    icon: '',
     isActive: true,
     order: 2,
     productCount: 380,
     level: 2,
     path: ['1', '2', '4'],
-    metaTitle: 'Apple iPhone | ESHOPY',
-    metaDescription: 'Apple iPhone telefóny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -234,17 +203,13 @@ const mockCategories: Category[] = [
     id: '5',
     name: 'Xiaomi',
     slug: 'xiaomi',
-    description: 'Mobilné telefóny Xiaomi',
+    description: 'Mobilne telefony Xiaomi',
     parentId: '2',
-    image: '/images/categories/xiaomi.jpg',
-    icon: '',
     isActive: false,
     order: 3,
     productCount: 220,
     level: 2,
     path: ['1', '2', '5'],
-    metaTitle: 'Xiaomi telefóny | ESHOPY',
-    metaDescription: 'Xiaomi telefóny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -254,15 +219,11 @@ const mockCategories: Category[] = [
     slug: 'notebooky',
     description: 'Laptopy a notebooky',
     parentId: '1',
-    image: '/images/categories/notebooky.jpg',
-    icon: '??',
     isActive: true,
     order: 2,
     productCount: 2840,
     level: 1,
     path: ['1', '6'],
-    metaTitle: 'Notebooky | ESHOPY',
-    metaDescription: 'Notebooky za najlepšie ceny',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -270,89 +231,69 @@ const mockCategories: Category[] = [
     id: '7',
     name: 'Gaming notebooky',
     slug: 'gaming-notebooky',
-    description: 'Herné notebooky',
+    description: 'Herne notebooky',
     parentId: '6',
-    image: '/images/categories/gaming.jpg',
-    icon: '??',
     isActive: true,
     order: 1,
     productCount: 580,
     level: 2,
     path: ['1', '6', '7'],
-    metaTitle: 'Gaming notebooky | ESHOPY',
-    metaDescription: 'Herné notebooky',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '8',
-    name: 'Televízory',
+    name: 'Televizory',
     slug: 'televizory',
-    description: 'Smart TV a televízory',
+    description: 'Smart TV a televizory',
     parentId: '1',
-    image: '/images/categories/tv.jpg',
-    icon: '??',
     isActive: true,
     order: 3,
     productCount: 1250,
     level: 1,
     path: ['1', '8'],
-    metaTitle: 'Televízory | ESHOPY',
-    metaDescription: 'Smart TV televízory',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '9',
-    name: 'Domácnost',
+    name: 'Domacnost',
     slug: 'domacnost',
-    description: 'Domáce spotrebice a potreby',
+    description: 'Domace spotrebice a potreby',
     parentId: null,
-    image: '/images/categories/domacnost.jpg',
-    icon: '??',
     isActive: true,
     order: 2,
     productCount: 8750,
     level: 0,
     path: ['9'],
-    metaTitle: 'Domácnost | ESHOPY',
-    metaDescription: 'Všetko pre domácnost',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '10',
-    name: 'Kuchynské spotrebice',
+    name: 'Kuchynske spotrebice',
     slug: 'kuchynske-spotrebice',
     description: 'Spotrebice do kuchyne',
     parentId: '9',
-    image: '/images/categories/kuchyna.jpg',
-    icon: '??',
     isActive: true,
     order: 1,
     productCount: 3420,
     level: 1,
     path: ['9', '10'],
-    metaTitle: 'Kuchynské spotrebice | ESHOPY',
-    metaDescription: 'Spotrebice do kuchyne',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
   {
     id: '11',
-    name: 'Šport a outdoor',
+    name: 'Sport a outdoor',
     slug: 'sport-outdoor',
-    description: 'Športové potreby a outdoor',
+    description: 'Sportove potreby a outdoor',
     parentId: null,
-    image: '/images/categories/sport.jpg',
-    icon: '?',
     isActive: true,
     order: 3,
     productCount: 5230,
     level: 0,
     path: ['11'],
-    metaTitle: 'Šport a outdoor | ESHOPY',
-    metaDescription: 'Športové potreby',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
@@ -362,34 +303,25 @@ const mockCategories: Category[] = [
     slug: 'fitness',
     description: 'Fitness vybavenie',
     parentId: '11',
-    image: '/images/categories/fitness.jpg',
-    icon: '??',
     isActive: true,
     order: 1,
     productCount: 1850,
     level: 1,
     path: ['11', '12'],
-    metaTitle: 'Fitness | ESHOPY',
-    metaDescription: 'Fitness vybavenie',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-06-15T10:30:00Z',
   },
 ];
 
-// -------------------------------------------------------------------------------
-// HELPER FUNCTIONS
-// -------------------------------------------------------------------------------
-
+// Helper Functions
 function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
   const categoryMap = new Map<string, CategoryTreeNode>();
   const roots: CategoryTreeNode[] = [];
 
-  // Create nodes
   categories.forEach(cat => {
     categoryMap.set(cat.id, { ...cat, children: [], level: cat.level || 0 });
   });
 
-  // Build tree
   categories.forEach(cat => {
     const node = categoryMap.get(cat.id)!;
     if (cat.parentId && categoryMap.has(cat.parentId)) {
@@ -399,7 +331,6 @@ function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
     }
   });
 
-  // Sort children by order
   const sortChildren = (nodes: CategoryTreeNode[]) => {
     nodes.sort((a, b) => (a.order || 0) - (b.order || 0));
     nodes.forEach(node => sortChildren(node.children));
@@ -428,10 +359,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-// -------------------------------------------------------------------------------
-// CATEGORY TREE ITEM COMPONENT
-// -------------------------------------------------------------------------------
-
+// CategoryTreeItem Component
 interface CategoryTreeItemProps {
   node: CategoryTreeNode;
   level: number;
@@ -471,7 +399,7 @@ function CategoryTreeItem({
   const isExpanded = expanded.has(node.id);
   const isSelected = selected === node.id;
   const isDragging = draggedId === node.id;
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragOver, setIsDragOver] = React.useState(false);
 
   return (
     <div className={isDragging ? 'opacity-50' : ''}>
@@ -502,12 +430,8 @@ function CategoryTreeItem({
           onDrop(node.id);
         }}
       >
-        {/* Drag handle */}
-        <span className="text-gray-400 cursor-grab hover:text-gray-600">
-          {Icons.drag}
-        </span>
+        <span className="text-gray-400 cursor-grab hover:text-gray-600">{Icons.drag}</span>
 
-        {/* Expand/collapse */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -518,77 +442,56 @@ function CategoryTreeItem({
           {Icons.chevronRight}
         </button>
 
-        {/* Icon */}
         <span className="text-gray-500">
           {hasChildren ? (isExpanded ? Icons.folderOpen : Icons.folder) : Icons.folder}
         </span>
 
-        {/* Category icon/emoji */}
         {node.icon && <span className="text-lg">{node.icon}</span>}
 
-        {/* Name */}
         <span className={`flex-1 font-medium ${!node.isActive ? 'line-through text-gray-400' : 'text-gray-800'}`}>
           {node.name}
         </span>
 
-        {/* Product count */}
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
           {(node.productCount || 0).toLocaleString()}
         </span>
 
-        {/* Status badge */}
         {!node.isActive && (
-          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
-            Neaktívna
-          </span>
+          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Inactive</span>
         )}
 
-        {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleActive(node);
-            }}
+            onClick={(e) => { e.stopPropagation(); onToggleActive(node); }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title={node.isActive ? 'Deaktivovat' : 'Aktivovat'}
+            title={node.isActive ? 'Deactivate' : 'Activate'}
           >
             {node.isActive ? Icons.eye : Icons.eyeOff}
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddChild(node.id);
-            }}
+            onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title="Pridat podkategóriu"
+            title="Add subcategory"
           >
             {Icons.plus}
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(node);
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(node); }}
             className="p-1.5 rounded hover:bg-gray-200 text-gray-500"
-            title="Upravit"
+            title="Edit"
           >
             {Icons.edit}
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(node);
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(node); }}
             className="p-1.5 rounded hover:bg-red-100 text-gray-500 hover:text-red-600"
-            title="Vymazat"
+            title="Delete"
           >
             {Icons.trash}
           </button>
         </div>
       </div>
 
-      {/* Children */}
       {hasChildren && isExpanded && (
         <div>
           {node.children.map(child => (
@@ -617,10 +520,7 @@ function CategoryTreeItem({
   );
 }
 
-// -------------------------------------------------------------------------------
-// CATEGORY FORM MODAL
-// -------------------------------------------------------------------------------
-
+// CategoryForm Component
 interface CategoryFormProps {
   category: Partial<Category> | null;
   parentId: string | null;
@@ -630,7 +530,7 @@ interface CategoryFormProps {
 }
 
 function CategoryForm({ category, parentId, categories, onSave, onClose }: CategoryFormProps) {
-  const [formData, setFormData] = useState<Partial<Category>>({
+  const [formData, setFormData] = React.useState<Partial<Category>>({
     name: '',
     slug: '',
     description: '',
@@ -643,7 +543,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
     ...category,
   });
 
-  const [autoSlug, setAutoSlug] = useState(!category?.id);
+  const [autoSlug, setAutoSlug] = React.useState(!category?.id);
 
   const handleNameChange = (name: string) => {
     setFormData(prev => ({
@@ -656,51 +556,42 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
 
   const parentPath = formData.parentId
     ? getCategoryPath(categories, formData.parentId).map(c => c.name).join(' > ')
-    : 'Korenová kategória';
+    : 'Root category';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <h2 className="text-xl font-bold text-gray-800">
-            {category?.id ? 'Upravit kategóriu' : 'Nová kategória'}
+            {category?.id ? 'Edit Category' : 'New Category'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
             {Icons.x}
           </button>
         </div>
 
-        {/* Form */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="space-y-6">
-            {/* Parent info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-2 text-sm text-blue-700">
-                <span className="font-medium">Nadradená kategória:</span>
+                <span className="font-medium">Parent category:</span>
                 <span>{parentPath}</span>
               </div>
             </div>
 
-            {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Názov kategórie *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category Name *</label>
               <input
                 type="text"
                 value={formData.name || ''}
                 onChange={(e) => handleNameChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="napr. Mobilné telefóny"
+                placeholder="e.g. Mobile Phones"
               />
             </div>
 
-            {/* Slug */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL slug *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">URL Slug *</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -710,7 +601,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                     setFormData(prev => ({ ...prev, slug: e.target.value }));
                   }}
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="mobilne-telefony"
+                  placeholder="mobile-phones"
                 />
                 <button
                   onClick={() => {
@@ -719,33 +610,26 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                   }}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Generovat
+                  Generate
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                URL: /kategoria/{formData.slug || 'slug'}
-              </p>
+              <p className="text-xs text-gray-500 mt-1">URL: /category/{formData.slug || 'slug'}</p>
             </div>
 
-            {/* Icon & Image row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Emoji ikona
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
                 <input
                   type="text"
                   value={formData.icon || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="??"
+                  placeholder="emoji"
                   maxLength={2}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL obrázka
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
                 <input
                   type="text"
                   value={formData.image || ''}
@@ -756,60 +640,45 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
               </div>
             </div>
 
-            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Popis kategórie
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
-                placeholder="Krátky popis kategórie..."
+                placeholder="Short description..."
               />
             </div>
 
-            {/* SEO section */}
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">SEO nastavenia</h3>
-              
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">SEO Settings</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meta title
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Meta Title</label>
                   <input
                     type="text"
                     value={formData.metaTitle || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, metaTitle: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Názov pre vyhladávace"
+                    placeholder="Title for search engines"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {(formData.metaTitle || '').length}/60 znakov
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{(formData.metaTitle || '').length}/60 characters</p>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meta description
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Meta Description</label>
                   <textarea
                     value={formData.metaDescription || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, metaDescription: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={2}
-                    placeholder="Popis pre vyhladávace"
+                    placeholder="Description for search engines"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {(formData.metaDescription || '').length}/160 znakov
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{(formData.metaDescription || '').length}/160 characters</p>
                 </div>
               </div>
             </div>
 
-            {/* Status */}
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -821,27 +690,23 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
                 <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
               <div>
-                <span className="font-medium text-gray-800">Aktívna kategória</span>
-                <p className="text-xs text-gray-500">Neaktívne kategórie nie sú viditelné na webe</p>
+                <span className="font-medium text-gray-800">Active Category</span>
+                <p className="text-xs text-gray-500">Inactive categories are not visible on the website</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-          >
-            Zrušit
+          <button onClick={onClose} className="px-6 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+            Cancel
           </button>
           <button
             onClick={() => onSave(formData)}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             {Icons.save}
-            {category?.id ? 'Uložit zmeny' : 'Vytvorit kategóriu'}
+            {category?.id ? 'Save Changes' : 'Create Category'}
           </button>
         </div>
       </div>
@@ -849,10 +714,7 @@ function CategoryForm({ category, parentId, categories, onSave, onClose }: Categ
   );
 }
 
-// -------------------------------------------------------------------------------
-// DELETE CONFIRMATION MODAL
-// -------------------------------------------------------------------------------
-
+// DeleteConfirm Component
 interface DeleteConfirmProps {
   category: Category;
   childCount: number;
@@ -868,41 +730,32 @@ function DeleteConfirm({ category, childCount, onConfirm, onClose }: DeleteConfi
           <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-red-600">{Icons.trash}</span>
           </div>
-          <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
-            Vymazat kategóriu?
-          </h3>
+          <h3 className="text-xl font-bold text-gray-800 text-center mb-2">Delete Category?</h3>
           <p className="text-gray-600 text-center mb-4">
-            Naozaj chcete vymazat kategóriu <strong>&quot;{category.name}&quot;</strong>?
+            Are you sure you want to delete <strong>&quot;{category.name}&quot;</strong>?
           </p>
           {childCount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
               <p className="text-red-700 text-sm">
-                ?? Táto kategória obsahuje <strong>{childCount}</strong> podkategórií, 
-                ktoré budú tiež vymazané!
+                Warning: This category contains <strong>{childCount}</strong> subcategories that will also be deleted!
               </p>
             </div>
           )}
           {(category.productCount || 0) > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <p className="text-yellow-700 text-sm">
-                ?? V tejto kategórii je <strong>{(category.productCount || 0).toLocaleString()}</strong> produktov.
-                Produkty nebudú vymazané, ale stratia priradenie ku kategórii.
+                Warning: This category has <strong>{(category.productCount || 0).toLocaleString()}</strong> products.
+                Products will not be deleted but will lose their category assignment.
               </p>
             </div>
           )}
         </div>
         <div className="flex gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-          >
-            Zrušit
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+            Cancel
           </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-          >
-            Vymazat
+          <button onClick={onConfirm} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
+            Delete
           </button>
         </div>
       </div>
@@ -910,10 +763,7 @@ function DeleteConfirm({ category, childCount, onConfirm, onClose }: DeleteConfi
   );
 }
 
-// -------------------------------------------------------------------------------
-// CATEGORY DETAIL PANEL
-// -------------------------------------------------------------------------------
-
+// CategoryDetail Component
 interface CategoryDetailProps {
   category: Category;
   categories: Category[];
@@ -923,19 +773,15 @@ interface CategoryDetailProps {
 
 function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetailProps) {
   const path = getCategoryPath(categories, category.id);
-  
+
   return (
     <div className="bg-white border-l h-full overflow-y-auto">
-      {/* Header */}
       <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-800">Detail kategórie</h2>
-        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-          {Icons.x}
-        </button>
+        <h2 className="text-lg font-bold text-gray-800">Category Detail</h2>
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">{Icons.x}</button>
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Image */}
         {category.image ? (
           <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
             <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
@@ -943,11 +789,10 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
         ) : (
           <div className="aspect-video bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
             {Icons.image}
-            <span className="ml-2">Bez obrázka</span>
+            <span className="ml-2">No image</span>
           </div>
         )}
 
-        {/* Name & Icon */}
         <div className="flex items-center gap-3">
           {category.icon && <span className="text-4xl">{category.icon}</span>}
           <div>
@@ -956,17 +801,15 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
           </div>
         </div>
 
-        {/* Status */}
         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
           category.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
         }`}>
           {category.isActive ? Icons.eye : Icons.eyeOff}
-          {category.isActive ? 'Aktívna' : 'Neaktívna'}
+          {category.isActive ? 'Active' : 'Inactive'}
         </div>
 
-        {/* Path */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Cesta</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Path</h4>
           <div className="flex flex-wrap items-center gap-1 text-sm">
             {path.map((cat, index) => (
               <React.Fragment key={cat.id}>
@@ -979,27 +822,24 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
           </div>
         </div>
 
-        {/* Description */}
         {category.description && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Popis</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
             <p className="text-gray-600">{category.description}</p>
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-blue-50 rounded-xl p-4">
             <div className="text-2xl font-bold text-blue-700">{(category.productCount || 0).toLocaleString()}</div>
-            <div className="text-sm text-blue-600">Produktov</div>
+            <div className="text-sm text-blue-600">Products</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="text-2xl font-bold text-gray-700">{category.level || 0}</div>
-            <div className="text-sm text-gray-600">Úroven</div>
+            <div className="text-sm text-gray-600">Level</div>
           </div>
         </div>
 
-        {/* SEO */}
         <div className="border-t pt-6">
           <h4 className="text-sm font-medium text-gray-700 mb-4">SEO</h4>
           <div className="space-y-3">
@@ -1014,26 +854,24 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
           </div>
         </div>
 
-        {/* Dates */}
         <div className="border-t pt-6 text-sm text-gray-500">
           <div className="flex justify-between mb-2">
-            <span>Vytvorené:</span>
-            <span>{category.createdAt ? new Date(category.createdAt).toLocaleString('sk-SK') : '-'}</span>
+            <span>Created:</span>
+            <span>{category.createdAt ? new Date(category.createdAt).toLocaleString() : '-'}</span>
           </div>
           <div className="flex justify-between">
-            <span>Upravené:</span>
-            <span>{category.updatedAt ? new Date(category.updatedAt).toLocaleString('sk-SK') : '-'}</span>
+            <span>Updated:</span>
+            <span>{category.updatedAt ? new Date(category.updatedAt).toLocaleString() : '-'}</span>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="border-t pt-6 flex gap-3">
           <button
             onClick={onEdit}
             className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
             {Icons.edit}
-            Upravit
+            Edit
           </button>
           <button className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             {Icons.link}
@@ -1047,62 +885,44 @@ function CategoryDetail({ category, categories, onEdit, onClose }: CategoryDetai
   );
 }
 
-// -------------------------------------------------------------------------------
-// MAIN PAGE COMPONENT
-// -------------------------------------------------------------------------------
-
+// Main Page Component
 export default function AdminCategoriesPage() {
-  // State
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['1', '2', '6', '9', '11']));
-  const [selected, setSelected] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [addingToParent, setAddingToParent] = useState<string | null>(null);
-  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [categories, setCategories] = React.useState<Category[]>(mockCategories);
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set(['1', '2', '6', '9', '11']));
+  const [selected, setSelected] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState('');
+  const [showForm, setShowForm] = React.useState(false);
+  const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
+  const [addingToParent, setAddingToParent] = React.useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = React.useState<Category | null>(null);
+  const [draggedId, setDraggedId] = React.useState<string | null>(null);
+  const [dragOverId, setDragOverId] = React.useState<string | null>(null);
 
-  // Build tree
   const tree = useMemo(() => buildCategoryTree(categories), [categories]);
 
-  // Filter categories
   const filteredTree = useMemo(() => {
     if (!search) return tree;
-    
     const searchLower = search.toLowerCase();
     const matchingIds = new Set<string>();
-    
-    // Find matching categories and their ancestors
     categories.forEach(cat => {
       if (cat.name.toLowerCase().includes(searchLower) || cat.slug.includes(searchLower)) {
         matchingIds.add(cat.id);
-        // Add all ancestors
         (cat.path || []).forEach(id => matchingIds.add(id));
       }
     });
-
-    // Filter tree
     const filterNodes = (nodes: CategoryTreeNode[]): CategoryTreeNode[] => {
       return nodes
         .filter(node => matchingIds.has(node.id))
-        .map(node => ({
-          ...node,
-          children: filterNodes(node.children),
-        }));
+        .map(node => ({ ...node, children: filterNodes(node.children) }));
     };
-
     return filterNodes(tree);
   }, [tree, search, categories]);
 
-  // Selected category
   const selectedCategory = useMemo(
     () => categories.find(c => c.id === selected) || null,
     [categories, selected]
   );
 
-  // Count children for delete warning
   const countDescendants = useCallback((categoryId: string): number => {
     let count = 0;
     const countChildren = (id: string) => {
@@ -1117,26 +937,17 @@ export default function AdminCategoriesPage() {
     return count;
   }, [categories]);
 
-  // Handlers
   const handleToggle = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  const handleExpandAll = () => {
-    setExpanded(new Set(categories.map(c => c.id)));
-  };
-
-  const handleCollapseAll = () => {
-    setExpanded(new Set());
-  };
+  const handleExpandAll = () => setExpanded(new Set(categories.map(c => c.id)));
+  const handleCollapseAll = () => setExpanded(new Set());
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
@@ -1156,57 +967,45 @@ export default function AdminCategoriesPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (category: Category) => {
-    setDeletingCategory(category);
-  };
+  const handleDelete = (category: Category) => setDeletingCategory(category);
 
   const handleConfirmDelete = () => {
     if (!deletingCategory) return;
-    
-    // Delete category and all descendants
     const idsToDelete = new Set<string>();
     const collectIds = (id: string) => {
       idsToDelete.add(id);
       categories.forEach(cat => {
-        if (cat.parentId === id) {
-          collectIds(cat.id);
-        }
+        if (cat.parentId === id) collectIds(cat.id);
       });
     };
     collectIds(deletingCategory.id);
-
     setCategories(prev => prev.filter(c => !idsToDelete.has(c.id)));
     setDeletingCategory(null);
-    if (selected && idsToDelete.has(selected)) {
-      setSelected(null);
-    }
+    if (selected && idsToDelete.has(selected)) setSelected(null);
   };
 
   const handleToggleActive = (category: Category) => {
-    setCategories(prev => prev.map(c => 
+    setCategories(prev => prev.map(c =>
       c.id === category.id ? { ...c, isActive: !c.isActive } : c
     ));
   };
 
   const handleSave = (formData: Partial<Category>) => {
     if (editingCategory) {
-      // Update existing
       setCategories(prev => prev.map(c =>
         c.id === editingCategory.id
           ? { ...c, ...formData, updatedAt: new Date().toISOString() }
           : c
       ));
     } else {
-      // Create new
       const newId = `${Date.now()}`;
       const parent = addingToParent ? categories.find(c => c.id === addingToParent) : null;
       const level = parent ? (parent.level || 0) + 1 : 0;
       const path = parent ? [...(parent.path || []), newId] : [newId];
-      
       const newCategory: Category = {
         id: newId,
-        name: formData.name || 'Nová kategória',
-        slug: formData.slug || slugify(formData.name || 'nova-kategoria'),
+        name: formData.name || 'New Category',
+        slug: formData.slug || slugify(formData.name || 'new-category'),
         description: formData.description || '',
         parentId: addingToParent,
         image: formData.image || '',
@@ -1221,57 +1020,35 @@ export default function AdminCategoriesPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      
       setCategories(prev => [...prev, newCategory]);
-      
-      // Expand parent if adding child
-      if (addingToParent) {
-        setExpanded(prev => new Set([...prev, addingToParent]));
-      }
+      if (addingToParent) setExpanded(prev => new Set([...prev, addingToParent]));
     }
-    
     setShowForm(false);
     setEditingCategory(null);
     setAddingToParent(null);
   };
 
-  // Drag & drop handlers
   const handleDrop = (targetId: string) => {
     if (!draggedId || draggedId === targetId) return;
-
-    // Don't allow dropping on descendant
     const target = categories.find(c => c.id === targetId);
     if (target?.path?.includes(draggedId)) return;
-
-    // Move category
     setCategories(prev => {
       const dragged = prev.find(c => c.id === draggedId);
       if (!dragged) return prev;
-
-      // Update parent and recalculate path/level
       const newParent = prev.find(c => c.id === targetId);
       const newLevel = newParent ? (newParent.level || 0) + 1 : 0;
       const newPath = newParent ? [...(newParent.path || []), draggedId] : [draggedId];
-
       return prev.map(c => {
         if (c.id === draggedId) {
-          return {
-            ...c,
-            parentId: targetId,
-            level: newLevel,
-            path: newPath,
-            updatedAt: new Date().toISOString(),
-          };
+          return { ...c, parentId: targetId, level: newLevel, path: newPath, updatedAt: new Date().toISOString() };
         }
         return c;
       });
     });
-
     setDraggedId(null);
     setDragOverId(null);
   };
 
-  // Stats
   const stats = useMemo(() => ({
     total: categories.length,
     active: categories.filter(c => c.isActive).length,
@@ -1281,13 +1058,12 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Správa kategórií</h1>
-              <p className="text-gray-500 text-sm">Organizujte produktové kategórie pomocou drag & drop</p>
+              <h1 className="text-2xl font-bold text-gray-800">Category Management</h1>
+              <p className="text-gray-500 text-sm">Organize product categories using drag and drop</p>
             </div>
             <div className="flex items-center gap-3">
               <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm font-medium">
@@ -1303,49 +1079,41 @@ export default function AdminCategoriesPage() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium"
               >
                 {Icons.plus}
-                Nová kategória
+                New Category
               </button>
             </div>
           </div>
-
-          {/* Stats */}
           <div className="flex gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Celkom:</span>
+              <span className="text-gray-500">Total:</span>
               <span className="font-semibold text-gray-800">{stats.total}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Aktívne:</span>
+              <span className="text-gray-500">Active:</span>
               <span className="font-semibold text-green-600">{stats.active}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Hlavné:</span>
+              <span className="text-gray-500">Root:</span>
               <span className="font-semibold text-gray-800">{stats.root}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Produkty:</span>
+              <span className="text-gray-500">Products:</span>
               <span className="font-semibold text-blue-600">{stats.products.toLocaleString()}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex h-[calc(100vh-140px)]">
-        {/* Tree panel */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          {/* Toolbar */}
           <div className="px-6 py-3 border-b bg-white flex items-center gap-4">
-            {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                {Icons.search}
-              </span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{Icons.search}</span>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Hladat kategórie..."
+                placeholder="Search categories..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {search && (
@@ -1357,49 +1125,35 @@ export default function AdminCategoriesPage() {
                 </button>
               )}
             </div>
-
-            {/* Tree controls */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleExpandAll}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Rozbalit všetko
+              <button onClick={handleExpandAll} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                Expand All
               </button>
-              <button
-                onClick={handleCollapseAll}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Zbalit všetko
+              <button onClick={handleCollapseAll} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                Collapse All
               </button>
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-                {Icons.refresh}
-              </button>
+              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">{Icons.refresh}</button>
             </div>
           </div>
 
-          {/* Tree */}
           <div className="flex-1 overflow-y-auto p-4">
             {filteredTree.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 {search ? (
                   <>
-                    <p className="mb-2">Žiadne kategórie nevyhovujú vyhladávaniu</p>
-                    <button
-                      onClick={() => setSearch('')}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Vymazat vyhladávanie
+                    <p className="mb-2">No categories match your search</p>
+                    <button onClick={() => setSearch('')} className="text-blue-600 hover:underline">
+                      Clear search
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="mb-4">Zatial nemáte žiadne kategórie</p>
+                    <p className="mb-4">You have no categories yet</p>
                     <button
                       onClick={handleAddRoot}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      Vytvorit prvú kategóriu
+                      Create first category
                     </button>
                   </>
                 )}
@@ -1431,7 +1185,6 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
 
-        {/* Detail panel */}
         {selectedCategory && (
           <div className="w-96 border-l">
             <CategoryDetail
@@ -1444,7 +1197,6 @@ export default function AdminCategoriesPage() {
         )}
       </div>
 
-      {/* Modals */}
       {showForm && (
         <CategoryForm
           category={editingCategory}
