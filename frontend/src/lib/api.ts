@@ -1,19 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// API CLIENT - OPRAVA URL DUPLIKÁCIE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// OPRAVA: Správne spracovanie URL - zabezpečí že vždy končí na /api/v1
-function getApiUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-  // Ak URL končí na /api/v1, ponecháme ju
-  if (envUrl.endsWith('/api/v1')) {
-    return envUrl;
-  }
-  // Inak pridáme /api/v1
-  return envUrl.replace(/\/$/, '') + '/api/v1';
-}
-
-const API_URL = getApiUrl();
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 class ApiClient {
   private token: string | null = null;
@@ -59,7 +44,7 @@ class ApiClient {
     if (response.status === 401) {
       this.clearToken();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        window.location.href = '/admin/login';
       }
     }
 
@@ -73,14 +58,11 @@ class ApiClient {
 
   // Auth
   async login(email: string, password: string) {
-    const data = await this.request<{ token: string; refresh_token?: string; user: any }>('/auth/login', {
+    const data = await this.request<{ token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     this.setToken(data.token);
-    if (data.refresh_token && typeof window !== 'undefined') {
-      localStorage.setItem('refresh_token', data.refresh_token);
-    }
     return data;
   }
 

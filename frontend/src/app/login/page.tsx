@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,13 +16,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // OPRAVA: Použitie api.login() namiesto priameho fetch - správne URL handling
-      const data = await api.login(email, password);
+      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(api + '/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Chyba prihlásenia');
+      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       toast.success('Prihlásený!');
       router.push(data.user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
-      toast.error(err.message || 'Chyba prihlásenia');
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

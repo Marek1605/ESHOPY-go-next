@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Mail, Lock, User, Store, ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api } from '@/lib/api';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', shop: '', terms: false });
@@ -25,12 +24,21 @@ export default function RegisterPage() {
     if (!form.terms) { toast.error('Súhlas s podmienkami'); return; }
     setLoading(true);
     try {
-      // OPRAVA: Použitie api.register() namiesto priameho fetch - správne URL handling
-      await api.register(form.email, form.password, form.name);
-      toast.success('Účet vytvorený!');
-      router.push('/login');
+      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(api + '/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+      });
+      if (res.status === 201 || res.status === 200) {
+        toast.success('Účet vytvorený!');
+        router.push('/login');
+        return;
+      }
+      const data = await res.json();
+      throw new Error(data.error || 'Chyba');
     } catch (err: any) {
-      toast.error(err.message || 'Chyba registrácie');
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
